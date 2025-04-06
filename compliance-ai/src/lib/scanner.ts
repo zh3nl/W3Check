@@ -45,7 +45,6 @@ async function scanPage(url: string, maxDepth: number = 1): Promise<ScanResult> 
     
     // Get page content for AI analysis
     pageContent = await page.content();
-    console.log(pageContent); 
     
     // Run axe-core analysis
     const axeResults = await new AxeBuilder(page)
