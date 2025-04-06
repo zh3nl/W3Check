@@ -89,7 +89,7 @@ export default function UrlForm({ onScanStart, onScanComplete, onScanError, isLo
 
       {!batchMode ? (
         <div className="space-y-2">
-          <label htmlFor="url" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="url" className="block text-sm text-black font-medium text-gray-700">
             Website URL
           </label>
           <input
@@ -97,7 +97,7 @@ export default function UrlForm({ onScanStart, onScanComplete, onScanError, isLo
             id="url"
             placeholder="https://example.com"
             {...register('url')}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            className="block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             disabled={isLoading}
           />
           {errors.url && (
@@ -133,7 +133,7 @@ export default function UrlForm({ onScanStart, onScanComplete, onScanError, isLo
           min={1}
           max={10}
           {...register('depth', { valueAsNumber: true })}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          className="block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
           disabled={isLoading}
         />
         {errors.depth && (

@@ -50,7 +50,7 @@ export default function ScanHistory({ history }: ScanHistoryProps) {
               onClick={() => toggleScanDetails(scan.id)}
             >
               <div>
-                <h3 className="font-medium">{scan.url}</h3>
+                <h3 className="font-medium text-black">{scan.url}</h3>
                 <p className="text-sm text-gray-500">
                   {new Date(scan.timestamp).toLocaleString()}
                 </p>
