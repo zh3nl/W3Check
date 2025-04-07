@@ -4,7 +4,8 @@ import { aiConfig, isFeatureEnabled, isServiceConfigured, getAiModel } from '../
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: aiConfig.openai.apiKey || 'demo-api-key', // Default to placeholder in development
+  baseURL: "https://api.novita.ai/v3/openai",
+  apiKey: aiConfig.novitaAi.apiKey || 'demo-api-key', // Default to placeholder in development
 });
 
 // Map WCAG success criteria to detailed explanations
@@ -223,7 +224,7 @@ async function generateAltTextWithOpenAI(imageUrl: string): Promise<string> {
     const prompt = `Describe this image concisely and accurately: ${imageUrl}`;
     
     const response = await openai.chat.completions.create({
-      model: getAiModel('openai'),
+      model: "meta-llama/llama-3.1-8b-instruct",
       messages: [
         {
           role: "system",
@@ -263,7 +264,7 @@ async function enhanceAriaViolation(
     
     // Default to OpenAI
     const response = await openai.chat.completions.create({
-      model: getAiModel('openai'),
+      model: "meta-llama/llama-3.1-8b-instruct",
       messages: [
         {
           role: "system",
@@ -316,7 +317,7 @@ async function enhanceGeneralViolation(
     const failureSummary = violation.nodes[0]?.failureSummary || '';
     
     const response = await openai.chat.completions.create({
-      model: getAiModel('openai'),
+      model: "meta-llama/llama-3.1-8b-instruct",
       messages: [
         {
           role: "system",
@@ -324,7 +325,7 @@ async function enhanceGeneralViolation(
         },
         {
           role: "user",
-          content: `Explain this accessibility issue in simple terms and provide a fix:
+          content: `Explain this accessibility issue in simple terms and provide a fix. Please format it so that a human can understand it:
           
 Element: ${elementHtml}
 Issue: ${violation.description}

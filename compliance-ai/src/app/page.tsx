@@ -64,7 +64,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <header className="py-12 px-4 sm:px-6 lg:px-8 text-center">
-        <h1 className="text-5xl font-bold text-purple-300 mb-4">WCAG Compliance Scanner</h1>
+        <h1 className="text-5xl font-bold text-purple-300 mb-4">Compliance AI</h1>
         <p className="text-xl max-w-3xl mx-auto">
           Ensure your website meets accessibility standards with our AI-powered WCAG 2.1 AA compliance scanner.
         </p>
@@ -223,7 +223,7 @@ export default function Home() {
       <footer className="bg-gray-800 border-t border-gray-700 mt-12 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-gray-400">
-            © {new Date().getFullYear()} Novita AI WCAG Compliance Scanner. All rights reserved.
+            © {new Date().getFullYear()} Compliance AI All rights reserved.
           </p>
           <p className="text-center text-sm text-gray-500 mt-2">
             Built with Next.js and Tailwind CSS. Powered by Axe-core and Novita AI.

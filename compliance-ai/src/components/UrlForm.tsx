@@ -81,7 +81,7 @@ export default function UrlForm({ onScanStart, onScanComplete, onScanError, isLo
             {...register('batchMode')} 
             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
-          <label htmlFor="batchMode" className="text-sm font-medium text-gray-700">
+          <label htmlFor="batchMode" className="text-sm font-medium">
             Batch Mode (Multiple URLs)
           </label>
         </div>
@@ -89,7 +89,7 @@ export default function UrlForm({ onScanStart, onScanComplete, onScanError, isLo
 
       {!batchMode ? (
         <div className="space-y-2">
-          <label htmlFor="url" className="block text-sm text-black font-medium text-gray-700">
+          <label htmlFor="url" className="block text-sm font-medium">
             Website URL
           </label>
           <input
@@ -97,7 +97,7 @@ export default function UrlForm({ onScanStart, onScanComplete, onScanError, isLo
             id="url"
             placeholder="https://example.com"
             {...register('url')}
-            className="block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             disabled={isLoading}
           />
           {errors.url && (
@@ -106,7 +106,7 @@ export default function UrlForm({ onScanStart, onScanComplete, onScanError, isLo
         </div>
       ) : (
         <div className="space-y-2">
-          <label htmlFor="batchUrls" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="batchUrls" className="block text-sm font-medium">
             Multiple URLs (One per line)
           </label>
           <textarea
@@ -124,7 +124,7 @@ export default function UrlForm({ onScanStart, onScanComplete, onScanError, isLo
       )}
 
       <div className="space-y-2">
-        <label htmlFor="depth" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="depth" className="block text-sm font-medium">
           Crawl Depth (1-10)
         </label>
         <input
@@ -133,7 +133,7 @@ export default function UrlForm({ onScanStart, onScanComplete, onScanError, isLo
           min={1}
           max={10}
           {...register('depth', { valueAsNumber: true })}
-          className="block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          className="block w-full rounded-md border-gray-300 shadow-sm  focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
           disabled={isLoading}
         />
         {errors.depth && (

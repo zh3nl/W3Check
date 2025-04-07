@@ -1,10 +1,12 @@
 import OpenAI from 'openai';
 import { ViolationType } from '../types';
+import { aiConfig, isFeatureEnabled, isServiceConfigured, getAiModel } from '../config/ai-config';
 
 // Initialize OpenAI client
 // In a real application, this would use environment variables for the API key
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'demo-api-key', // Default to a placeholder in development
+  baseURL: "https://api.novita.ai/v3/openai",
+  apiKey: aiConfig.novitaAi.apiKey || 'demo-api-key', // Default to placeholder in development
 });
 
 // Map WCAG criteria to more descriptive explanations
@@ -63,7 +65,7 @@ export async function enhanceWithAI(violation: ViolationType, url: string): Prom
     
     // Generate AI suggestion
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "meta-llama/llama-3.1-8b-instruct",
       messages: [
         {
           role: "system",
@@ -71,7 +73,7 @@ export async function enhanceWithAI(violation: ViolationType, url: string): Prom
         },
         {
           role: "user",
-          content: `Please provide a suggestion to fix this accessibility issue:\n${context}`
+          content: `Please provide a suggestion to fix this accessibility issue and format it so a human can read and understand it clearly:\n${context}`
         }
       ],
       max_tokens: 500,

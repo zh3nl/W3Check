@@ -141,7 +141,7 @@ export default function ScanHistory({ history }: ScanHistoryProps) {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <h4 className="font-medium">Violations ({scan.violations.length})</h4>
+                    <h4 className="font-medium text-black">Violations ({scan.violations.length})</h4>
                     <div className="space-y-3">
                       {scan.violations.map((violation) => (
                         <div key={violation.id} className="border rounded-md overflow-hidden">
@@ -170,14 +170,14 @@ export default function ScanHistory({ history }: ScanHistoryProps) {
                             <div className="px-4 py-3 border-t bg-white">
                               <div className="mb-4">
                                 <h6 className="text-sm font-medium text-gray-500 mb-1">AI Suggestion</h6>
-                                <p className="text-sm">{violation.aiSuggestion || 'No AI suggestion available'}</p>
+                                <p className="text-sm text-black">{violation.aiSuggestion || 'No AI suggestion available'}</p>
                               </div>
                               
                               <div className="mb-4">
                                 <h6 className="text-sm font-medium text-gray-500 mb-1">Affected Elements ({violation.nodes.length})</h6>
                                 <div className="space-y-2">
                                   {violation.nodes.map((node, index) => (
-                                    <div key={index} className="text-sm">
+                                    <div key={index} className="text-sm text-black">
                                       <div className="bg-gray-50 p-2 rounded font-mono whitespace-pre-wrap text-xs overflow-x-auto">
                                         {node.html}
                                       </div>
