@@ -69,7 +69,7 @@ export async function enhanceWithAI(violation: ViolationType, url: string): Prom
       messages: [
         {
           role: "system",
-          content: "You are an accessibility expert specializing in WCAG compliance. Provide clear, concise suggestions to fix accessibility issues. Explain what needs to be changed and why, with code examples where helpful."
+          content: "You are an accessibility expert specializing in WCAG compliance. Provide clear, concise suggestions to fix accessibility issues. Explain what needs to be changed and why, with code examples where helpful. Make sure to format your responses without any markdown."
         },
         {
           role: "user",

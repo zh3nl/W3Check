@@ -321,7 +321,7 @@ async function enhanceGeneralViolation(
       messages: [
         {
           role: "system",
-          content: `You are an accessibility expert explaining WCAG violations in simple, non-technical language with clear code examples.`
+          content: `You are an accessibility expert explaining WCAG violations in simple, non-technical language with clear code examples. Make sure to format your responses without any markdown`
         },
         {
           role: "user",
