@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ScanResult, ViolationType } from '../types';
+import { ScanResult, ViolationType } from '../../types';
 import markdownToTxt from 'markdown-to-txt';
 
 type ScanHistoryProps = {
