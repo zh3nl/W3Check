@@ -29,6 +29,7 @@ async function initPage(browser: Browser): Promise<Page> {
 }
 
 // Run accessibility scan on a single page
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function scanPage(url: string, maxDepth: number = 1): Promise<ScanResult> {
   const browser = await getBrowser();
   const page = await initPage(browser);
