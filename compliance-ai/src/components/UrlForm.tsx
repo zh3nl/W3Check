@@ -1,21 +1,7 @@
 'use client';
 
 import { useForm, SubmitHandler } from 'react-hook-form';
-import validator from 'validator';
-import { z } from 'zod';
 import { ScanResult } from '../types';
-
-// Define input schema for form validation
-const formSchema = z.object({
-  url: z.string()
-    .trim()
-    .refine((val: string) => validator.isURL(val, { require_protocol: true }), {
-      message: 'Please enter a valid URL with http:// or https://'
-    }),
-  depth: z.number().int().min(1).max(10).default(1),
-  batchMode: z.boolean().default(false),
-  batchUrls: z.string().optional()
-});
 
 type FormInputs = {
   url: string;

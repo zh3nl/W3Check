@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { ViolationType } from '../types';
-import { aiConfig, isFeatureEnabled, isServiceConfigured, getAiModel } from '../config/ai-config';
+import { aiConfig, isFeatureEnabled, isServiceConfigured } from '../config/ai-config';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -55,14 +55,6 @@ const impactPriorityMap: Record<string, number> = {
   'serious': 2,
   'moderate': 3,
   'minor': 4
-};
-
-// User-friendly explanations for technical terms
-const technicalTermsGlossary: Record<string, string> = {
-  'alt': 'Alternative text (alt text) is a description of an image for people who cannot see it',
-  'aria': 'Accessible Rich Internet Applications (ARIA) are attributes that define ways to make web content more accessible',
-  'contrast ratio': 'The difference in brightness between text and its background, important for readability',
-  'focus': 'Visual indication showing which element is currently selected by keyboard navigation'
 };
 
 /**
