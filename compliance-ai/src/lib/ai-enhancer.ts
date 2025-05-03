@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { ViolationType } from '../types';
-import { aiConfig, isFeatureEnabled, isServiceConfigured, getAiModel } from '../config/ai-config';
+import { aiConfig} from '../config/ai-config';
 
 // Initialize OpenAI client
 // In a real application, this would use environment variables for the API key

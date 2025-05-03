@@ -1,5 +1,9 @@
 import { NextRequest } from 'next/server';
 
+interface ZodLikeError {
+  errors: unknown; 
+}
+
 /**
  * Gets the client IP address from the NextRequest object
  * Works with various deployment environments including Vercel, standard proxies
@@ -14,7 +18,7 @@ export function getClientIP(request: NextRequest): string {
   }
   
   // Use remoteAddress from NextRequest if available
-  const ip = request.ip;
+  const ip = request.headers.get('x-real-ip');
   
   // Return whatever we found, or a placeholder
   return ip || 'unknown';
@@ -36,11 +40,11 @@ export class APIError extends Error {
 /**
  * Type guard to check if an unknown error is a ZodError
  */
-export function isZodError(error: unknown): boolean {
+export function isZodError(error: unknown): error is ZodLikeError {
   return (
     typeof error === 'object' && 
     error !== null && 
     'errors' in error && 
-    Array.isArray((error as any).errors)
+    Array.isArray((error as Record<string, unknown>).errors)
   );
 } 
