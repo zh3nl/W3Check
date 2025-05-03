@@ -18,7 +18,7 @@ export function getClientIP(request: NextRequest): string {
   }
   
   // Use remoteAddress from NextRequest if available
-  const ip = request.ip;
+  const ip = request.headers.get('x-real-ip');
   
   // Return whatever we found, or a placeholder
   return ip || 'unknown';
