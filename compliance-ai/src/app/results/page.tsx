@@ -6,9 +6,13 @@ import dynamic from 'next/dynamic';
 import { ScanResult } from '../../types';
 
 // Dynamically import components to avoid SSR issues with browser-only libraries
+<<<<<<< HEAD
 const ScanHistory = dynamic(() => import("../../components/ScanHistory"), {
   ssr: false,
 });
+=======
+const ScanHistory = dynamic(() => import('../../components/scan-functions/ScanHistory'), { ssr: false });
+>>>>>>> feature/my-new-branch
 
 // Create a separate component that uses useSearchParams
 function ResultsContent() {

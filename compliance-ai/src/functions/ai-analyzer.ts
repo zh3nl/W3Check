@@ -1,6 +1,10 @@
 import OpenAI from 'openai';
 import { ViolationType } from '../types';
+<<<<<<< HEAD:compliance-ai/src/lib/ai-analyzer.ts
 import { aiConfig, isFeatureEnabled, isServiceConfigured } from '../config/ai-config';
+=======
+import { aiConfig, isFeatureEnabled } from '../config/ai-config';
+>>>>>>> feature/my-new-branch:compliance-ai/src/functions/ai-analyzer.ts
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -90,7 +94,7 @@ export async function analyzeAccessibilityViolations(
         
         // Add AI-powered enhancements based on violation type
         if (violation.id === 'image-alt' && isFeatureEnabled('generateAltText')) {
-          // For missing alt text, generate suggestions with PIN AI or OpenAI Vision
+          // For missing alt text, generate suggestions with OpenAI Vision
           await enhanceImageAltViolation(violation, pageUrl);
         } else if ((violation.id.includes('aria') || violation.id === 'form-label') && 
                   isFeatureEnabled('suggestAriaFixes')) {
@@ -151,15 +155,8 @@ async function enhanceImageAltViolation(
     const imageUrl = imageUrls[0];
     let altTextSuggestion = '';
     
-    // Try to use PIN AI if configured
-    if (isFeatureEnabled('usePinAi') && isServiceConfigured('pinAi')) {
-      // Implementation would go here if PIN AI was a real service
-      // Using OpenAI's vision capabilities as a placeholder
-      altTextSuggestion = await generateAltTextWithOpenAI(imageUrl);
-    } else {
-      // Fallback to OpenAI Vision
-      altTextSuggestion = await generateAltTextWithOpenAI(imageUrl);
-    }
+    // Use OpenAI Vision for alt text suggestion
+    altTextSuggestion = await generateAltTextWithOpenAI(imageUrl);
     
     if (!altTextSuggestion) {
       violation.aiSuggestion = 'Could not generate alt text suggestion for the image.';
@@ -173,36 +170,9 @@ async function enhanceImageAltViolation(
         ? `<img alt="${altTextSuggestion}"` 
         : `alt="${altTextSuggestion}"`;
     });
-    
-    violation.aiSuggestion = `
-## Alt Text Suggestion
-
-### Explanation
-Images without alt text are not accessible to screen reader users. Alt text should concisely describe the content and function of the image.
-
-### Suggested Alt Text
-"${altTextSuggestion}"
-
-### Code Fix
-Before:
-\`\`\`html
-${beforeCode}
-\`\`\`
-
-After:
-\`\`\`html
-${afterCode}
-\`\`\`
-
-### WCAG Reference
-Violates WCAG 2.1 Success Criterion 1.1.1 Non-text Content (Level A)
-
-### Priority: ${violation.impact.toUpperCase()}
-This issue has a high impact on users who rely on screen readers.
-`;
-  } catch (error) {
-    console.error('Error generating alt text with AI:', error);
-    violation.aiSuggestion = 'Error generating AI-powered alt text suggestion.';
+    violation.aiSuggestion = `Before: ${beforeCode}\nAfter: ${afterCode}`;
+  } catch {
+    violation.aiSuggestion = 'Error generating alt text suggestion.';
   }
 }
 
@@ -247,12 +217,6 @@ async function enhanceAriaViolation(
   try {
     const elementHtml = violation.nodes[0]?.html || '';
     const failureSummary = violation.nodes[0]?.failureSummary || '';
-    
-    // Check if Novita AI is available
-    if (isFeatureEnabled('useNovitaAi') && isServiceConfigured('novitaAi')) {
-      // Implementation would use Novita AI if it were a real service
-      // Using OpenAI as a placeholder
-    }
     
     // Default to OpenAI
     const response = await openai.chat.completions.create({

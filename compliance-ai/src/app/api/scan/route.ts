@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import validator from 'validator';
 import { v4 as uuidv4 } from 'uuid';
-import { scanSingleUrl, scanBatchUrls } from '@/lib/scanner';
-import { getClientIP, isZodError } from '@/lib/server-utils';
+import { scanSingleUrl, scanBatchUrls } from '@/functions/scanner';
+import { getClientIP, isZodError } from '@/functions/server-utils';
 
 // Rate limiting variables (for production this should use Redis or similar)
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
