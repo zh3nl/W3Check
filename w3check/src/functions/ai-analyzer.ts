@@ -1,10 +1,6 @@
 import OpenAI from 'openai';
 import { ViolationType } from '../types';
-<<<<<<< HEAD:compliance-ai/src/lib/ai-analyzer.ts
 import { aiConfig, isFeatureEnabled, isServiceConfigured } from '../config/ai-config';
-=======
-import { aiConfig, isFeatureEnabled } from '../config/ai-config';
->>>>>>> feature/my-new-branch:compliance-ai/src/functions/ai-analyzer.ts
 
 // Initialize OpenAI client
 const openai = new OpenAI({

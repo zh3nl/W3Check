@@ -6,13 +6,7 @@ import dynamic from 'next/dynamic';
 import { ScanResult } from '../../types';
 
 // Dynamically import components to avoid SSR issues with browser-only libraries
-<<<<<<< HEAD
-const ScanHistory = dynamic(() => import("../../components/ScanHistory"), {
-  ssr: false,
-});
-=======
 const ScanHistory = dynamic(() => import('../../components/scan-functions/ScanHistory'), { ssr: false });
->>>>>>> feature/my-new-branch
 
 // Create a separate component that uses useSearchParams
 function ResultsContent() {
@@ -120,7 +114,7 @@ export default function ResultsPage() {
               <h1 className="text-3xl font-bold text-white">
                 WCAG Compliance Scanner
               </h1>
-              <p className="mt-2 text-sm text-purple-200">
+              <p className="mt-2 text-sm text-indigo-200">
                 AI-powered WCAG 2.1 AA compliance analysis results
               </p>
             </div>
