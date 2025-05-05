@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ScanResult } from '../../types';
+import SitePreview from '../../components/results-page/SitePreview';
 
 // Dynamically import components to avoid SSR issues with browser-only libraries
 const ScanHistory = dynamic(() => import('../../components/scan-functions/ScanHistory'), { ssr: false });
@@ -320,7 +321,7 @@ function ResultsContent() {
         </div>
       ) : result ? (
         <div>
-          <div className="bg-white rounded-lg shadow px-5 py-6 sm:px-6 mb-6">
+          <div className="bg-white rounded-lg shadow px-5 py-6 sm:px-6 mb-6 overflow-x-auto break-words max-w-full">
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-900">
                 {isMultiPage 
@@ -386,59 +387,66 @@ export default function ResultsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-gradient-to-r from-purple-800 to-indigo-900 shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-white">
-                WCAG Compliance Scanner
-              </h1>
-              <p className="mt-2 text-sm text-indigo-200">
-                AI-powered WCAG 2.1 AA compliance analysis results
-              </p>
-            </div>
-            <button
-              onClick={handleBackToHome}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-2"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Back to Scanner
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-emerald-50 flex">
+      {/* Left Sidebar */}
+      <aside className="w-[340px] bg-white border-r border-emerald-100 flex flex-col items-center pt-8 px-6 min-h-screen">
+        <button className="flex items-center text-gray-500 mb-8 self-start" onClick={handleBackToHome}>
+          <span className="mr-2">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </span>
+          Back to Home
+        </button>
+        {/* Placeholder for logo/image */}
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
+        
+        <SitePreview url={(typeof window !== 'undefined' && (() => {
+          const params = new URLSearchParams(window.location.search);
+          const scanHistory: ScanResult[] = JSON.parse(localStorage.getItem('scanHistory') || '[]');
+          const id = params.get('id');
+          const result = scanHistory.find((item: ScanResult) => item.id === id);
+          return result?.url;
+        })()) || undefined} />
+
+
+        {/* URL */}
+        <a href="#" className="text-emerald-700 underline text-base mb-4 break-all">https://www.stussy.com</a>
+        
+        {/* Compliance status */}
+        <div className="flex items-center mb-4">
+          <span className="w-3 h-3 rounded-full bg-red-500 mr-2"></span>
+          <span className="text-gray-700 text-sm">Not compliant under <span className="font-semibold">🇺🇸 United States law</span></span>
+        </div>
+        {/* Fix Issues with sponsors */}
+        <div className="w-full mb-2">
+        </div>
+      </aside>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-h-screen">
+        <header className="bg-white shadow rounded-b-2xl px-12 py-8 flex flex-col md:flex-row md:items-center md:justify-between border-b border-emerald-100">
+
+          
+          {/* <div>
+            <h1 className="text-2xl font-bold text-emerald-700 mb-2">Audit results for <span className="text-emerald-900">https://www.stussy.com</span>:</h1>
+            <div className="flex items-center text-gray-600 text-sm mb-2">
+              <svg className="w-5 h-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" /><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              You&apos;ve scanned 1 page so far. Scan your entire domain to uncover all critical accessibility issues. <a href="#" className="ml-1 underline text-emerald-700">Scan full domain</a>
+            </div>
+          </div> */}
+
+
+          <div className="flex items-center gap-4 mt-4 md:mt-0">
+            <a href="#" className="text-gray-400 hover:text-emerald-700 text-sm flex items-center"><svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> Download audit</a>
+          </div>
+        </header>
+        <main className="flex-1 p-8 overflow-y-auto">
           <Suspense fallback={
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
             </div>
           }>
             <ResultsContent />
           </Suspense>
-        </div>
-      </main>
-
-      <footer className="bg-white border-t border-gray-200 mt-12">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500">
-            © {new Date().getFullYear()} W3Check
-          </p>
-        </div>
-      </footer>
+        </main>
+      </div>
     </div>
   );
-}
