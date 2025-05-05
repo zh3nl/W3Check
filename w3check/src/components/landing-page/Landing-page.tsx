@@ -16,6 +16,11 @@ export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  const handleScanStart = (url: string) => {
+    setIsLoading(true);
+    router.push(`/buffer-page?url=${encodeURIComponent(url)}`);
+  };
+
   const handleScanComplete = (results: ScanResult[]) => {
     // Store the results in localStorage
     const storedHistory = localStorage.getItem('scanHistory') || '[]';
@@ -27,7 +32,7 @@ export default function LandingPage() {
     
     // Redirect to the results page with the first result
     if (results.length > 0) {
-      router.push(`/results?id=${results[0].id}`);
+      router.push(`/results-page?id=${results[0].id}`);
     }
     
     setIsLoading(false);
@@ -60,6 +65,7 @@ export default function LandingPage() {
                   onScanComplete={handleScanComplete}
                   onScanError={handleScanError}
                   isLoading={isLoading}
+                  onScanStart={handleScanStart}
                 />
               </div>
             </div>
