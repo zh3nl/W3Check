@@ -57,7 +57,7 @@ export default function LandingPage() {
               The future of <span className="text-black">site accessibility maintenance</span>
             </h1>
             <p className="text-lg text-gray-600 mb-12">
-              Ensure web accessiiblity compliance with 25+ intent signals and AI agents. Codebase analysis, suggested changes, and data analytics in one unified workflow.
+              Ensure web accessiblity compliance with 25+ intent signals and AI agents. Codebase analysis, suggested changes, and data analytics in one unified workflow.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-6 mb-4">
               <div className="w-full sm:w-auto flex-1">
