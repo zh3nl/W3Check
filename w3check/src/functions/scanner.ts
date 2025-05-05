@@ -28,9 +28,64 @@ async function initPage(browser: Browser): Promise<Page> {
   return page;
 }
 
+// Extract domain from URL
+function extractDomain(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname;
+  } catch (error) {
+    console.error(`Error extracting domain from ${url}:`, error);
+    return '';
+  }
+}
+
+// Extract URLs from a webpage
+async function extractUrlsFromPage(page: Page, baseDomain: string): Promise<string[]> {
+  try {
+    // Extract all links from the page
+    const urls = await page.evaluate((domain) => {
+      const links = Array.from(document.querySelectorAll('a[href]'));
+      return links
+        .map(link => {
+          const href = link.getAttribute('href');
+          if (!href) return null;
+          
+          try {
+            // Handle relative URLs
+            const url = new URL(href, window.location.origin);
+            // Only include URLs from the same domain
+            if (url.hostname === domain) {
+              // Normalize URL by removing hash fragments and standardizing trailing slashes
+              let normalizedUrl = url.origin + url.pathname;
+              // Add trailing slash to directory URLs for consistency
+              if (!normalizedUrl.endsWith('/') && !normalizedUrl.includes('.')) {
+                normalizedUrl += '/';
+              }
+              // Add query parameters if they exist
+              if (url.search) {
+                normalizedUrl += url.search;
+              }
+              return normalizedUrl;
+            }
+          } catch (error) {
+            console.error(`Error processing URL: ${href}`, error);
+            return null;
+          }
+          return null;
+        })
+        .filter(Boolean) as string[];
+    }, baseDomain);
+    
+    // Remove duplicates and return
+    return [...new Set(urls)];
+  } catch (error) {
+    console.error('Error extracting URLs:', error);
+    return [];
+  }
+}
+
 // Run accessibility scan on a single page
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function scanPage(url: string, maxDepth: number = 1): Promise<ScanResult> {
+async function scanPage(url: string): Promise<ScanResult> {
   const browser = await getBrowser();
   const page = await initPage(browser);
   let violations: ViolationType[] = [];
@@ -108,17 +163,143 @@ async function scanPage(url: string, maxDepth: number = 1): Promise<ScanResult> 
   };
 }
 
+// Crawl and scan a website recursively
+async function crawlAndScan(
+  startUrl: string,
+  maxDepth: number,
+  maxPages: number = 100
+): Promise<ScanResult[]> {
+  const browser = await getBrowser();
+  const page = await initPage(browser);
+  const results: ScanResult[] = [];
+  const visited = new Set<string>();
+  const queue: Array<{ url: string; depth: number }> = [];
+  const baseDomain = extractDomain(startUrl);
+  
+  // Normalize the start URL for consistency
+  try {
+    const urlObj = new URL(startUrl);
+    const normalizedStartUrl = urlObj.origin + urlObj.pathname + (urlObj.search || '');
+    queue.push({ url: normalizedStartUrl, depth: 0 });
+  } catch (error) {
+    console.error(`Error normalizing start URL: ${startUrl}`, error);
+    queue.push({ url: startUrl, depth: 0 });
+  }
+  
+  try {
+    // If maxDepth is very large (e.g., 100), we're crawling the entire site with safeguards
+    const isFullSiteCrawl = maxDepth >= 50;
+    // Set a safety limit on the maximum number of pages to crawl
+    const pageSafetyLimit = isFullSiteCrawl ? 200 : maxPages;
+    
+    console.log(`Starting crawl: ${startUrl}, max depth: ${maxDepth}, limit: ${pageSafetyLimit} pages`);
+    
+    while (queue.length > 0 && results.length < pageSafetyLimit) {
+      const { url, depth } = queue.shift()!;
+      
+      // Skip if already visited or reached max depth
+      if (visited.has(url) || depth > maxDepth) continue;
+      
+      // Mark as visited
+      visited.add(url);
+      
+      console.log(`Crawling ${url} (depth ${depth}/${maxDepth}, page ${results.length+1}/${pageSafetyLimit})`);
+      
+      try {
+        // Scan the page
+        const result = await scanPage(url);
+        results.push(result);
+        
+        // Don't crawl further if max depth reached
+        if (depth >= maxDepth) continue;
+        
+        // Navigate to extract URLs
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 });
+        
+        // Extract URLs for crawling
+        const links = await extractUrlsFromPage(page, baseDomain);
+        console.log(`Found ${links.length} links on ${url}`);
+        
+        // Add new URLs to the queue
+        for (const link of links) {
+          if (!visited.has(link) && results.length < pageSafetyLimit) {
+            queue.push({ url: link, depth: depth + 1 });
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing ${url}:`, error);
+        // Add a failed result for this URL
+        results.push({
+          id: Date.now().toString(),
+          url,
+          timestamp: new Date().toISOString(),
+          status: 'failed',
+          violations: [],
+          passes: 0,
+          incomplete: 0,
+          inapplicable: 0,
+          summary: {
+            critical: 0,
+            serious: 0,
+            moderate: 0,
+            minor: 0,
+            total: 0
+          }
+        });
+      }
+    }
+    
+    console.log(`Crawl completed. Processed ${results.length} pages out of ${visited.size} discovered URLs.`);
+  } catch (error) {
+    console.error('Crawl and scan error:', error);
+  } finally {
+    await page.close();
+  }
+  
+  return results;
+}
+
+// Helper function to create a failed scan result
+function createFailedScanResult(url: string, id: string): ScanResult {
+  return {
+    id,
+    url,
+    timestamp: new Date().toISOString(),
+    status: 'failed',
+    violations: [],
+    passes: 0,
+    incomplete: 0,
+    inapplicable: 0,
+    summary: {
+      critical: 0,
+      serious: 0,
+      moderate: 0,
+      minor: 0,
+      total: 0
+    }
+  };
+}
+
 // Scan a single URL with specified crawl depth
 export async function scanSingleUrl(
   url: string, 
   maxDepth: number = 1,
   scanId: string
-): Promise<ScanResult> {
+): Promise<ScanResult | ScanResult[]> {
   try {
-    // Use maxDepth for crawling behavior (even though we're not implementing crawling yet)
-    const result = await scanPage(url, maxDepth);
-    result.id = scanId;
-    return result;
+    if (maxDepth > 1) {
+      // If depth > 1, crawl the website recursively
+      const results = await crawlAndScan(url, maxDepth - 1, 10);
+      return results.map((result, i) => {
+        result.id = i === 0 ? scanId : `${scanId}-${i}`;
+        return result;
+      });
+    } else {
+      // Just scan a single page
+      const result = await scanPage(url);
+      result.id = scanId;
+      return result;
+    }
   } catch (error) {
     console.error(`Error in scanSingleUrl for ${url}:`, error);
     
@@ -143,46 +324,53 @@ export async function scanSingleUrl(
   }
 }
 
-// Scan multiple URLs in batch mode
+// Scan multiple URLs in batch mode with parallel processing
 export async function scanBatchUrls(
   urls: string[], 
   maxDepth: number = 1,
   scanId: string
 ): Promise<ScanResult[]> {
   try {
-    // Use maxDepth for crawling behavior (even though we're not implementing crawling yet)
-    const results: ScanResult[] = [];
+    // Set a reasonable concurrency limit to avoid overloading the system
+    const CONCURRENCY_LIMIT = 3;
+    const allResults: ScanResult[] = [];
+    let resultIndex = 0;
     
-    for (const url of urls) {
-      try {
-        const result = await scanPage(url, maxDepth);
-        result.id = `${scanId}-${results.length}`;
-        results.push(result);
-      } catch (error) {
-        console.error(`Error scanning batch URL ${url}:`, error);
-        
-        // Add a failed result for this URL
-        results.push({
-          id: `${scanId}-${results.length}`,
-          url,
-          timestamp: new Date().toISOString(),
-          status: 'failed',
-          violations: [],
-          passes: 0,
-          incomplete: 0,
-          inapplicable: 0,
-          summary: {
-            critical: 0,
-            serious: 0,
-            moderate: 0,
-            minor: 0,
-            total: 0
+    // Process URLs in batches to maintain the concurrency limit
+    for (let i = 0; i < urls.length; i += CONCURRENCY_LIMIT) {
+      const batch = urls.slice(i, i + CONCURRENCY_LIMIT);
+      
+      // Create promises for each URL in the current batch
+      const promises = batch.map(async (url) => {
+        try {
+          if (maxDepth > 1) {
+            // If depth > 1, crawl the website recursively
+            const results = await crawlAndScan(url, maxDepth - 1, 5);
+            return results.map(result => {
+              const index = resultIndex++;
+              result.id = `${scanId}-${index}`;
+              return result;
+            });
+          } else {
+            // Just scan a single page
+            const result = await scanPage(url);
+            result.id = `${scanId}-${resultIndex++}`;
+            return [result];
           }
-        });
-      }
+        } catch (error) {
+          console.error(`Error scanning batch URL ${url}:`, error);
+          return [createFailedScanResult(url, `${scanId}-${resultIndex++}`)];
+        }
+      });
+      
+      // Wait for all promises in the current batch to resolve
+      const batchResultsArrays = await Promise.all(promises);
+      // Flatten the array of arrays
+      const batchResults = batchResultsArrays.flat();
+      allResults.push(...batchResults);
     }
     
-    return results;
+    return allResults;
   } catch (error) {
     console.error('Error in scanBatchUrls:', error);
     throw error;

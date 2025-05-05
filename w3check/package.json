@@ -15,7 +15,7 @@
     "lodash": "^4.17.21",
     "markdown-to-txt": "^2.0.1",
     "next": "15.2.4",
-    "openai": "^4.35.0",
+    "openai": "^4.97.0",
     "puppeteer": "^22.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
