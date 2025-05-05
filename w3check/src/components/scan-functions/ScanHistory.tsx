@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ScanResult, ViolationType } from '../../types';
-import markdownToTxt from 'markdown-to-txt';
+import AISuggestion from './AISuggestion';
 
 type ScanHistoryProps = {
   history: ScanResult[];
@@ -171,7 +171,7 @@ export default function ScanHistory({ history }: ScanHistoryProps) {
                             <div className="px-4 py-3 border-t bg-white">
                               <div className="mb-4">
                                 <h6 className="text-sm font-medium text-gray-500 mb-1">AI Suggestion</h6>
-                                <p className="text-sm text-black">{markdownToTxt(violation.aiSuggestion || "No suggestions available") || 'No AI suggestion available'}</p>
+                                <AISuggestion suggestion={violation.aiSuggestion || ""} />
                               </div>
                               
                               <div className="mb-4">

@@ -96,16 +96,58 @@ async function scanPage(url: string): Promise<ScanResult> {
   let pageContent = '';
   
   try {
-    // Navigate to the URL
-    await page.goto(url, { waitUntil: 'networkidle2' });
+    // Navigate to the URL with improved waiting strategy
+    await page.goto(url, { 
+      waitUntil: ['networkidle2', 'domcontentloaded'],
+      timeout: 60000 // Increase timeout to 60 seconds for slow pages
+    });
+    
+    // Additional waiting to ensure page is fully rendered
+    await page.waitForFunction(() => {
+      return document.readyState === 'complete';
+    }, { timeout: 30000 }).catch(e => {
+      console.warn(`Page readyState timeout for ${url}, continuing anyway:`, e.message);
+    });
+    
+    // Wait a bit longer for any lazy-loaded content or JS frameworks
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Get page content for AI analysis
     pageContent = await page.content();
     
-    // Run axe-core analysis
-    const axeResults = await new AxeBuilder(page)
-      .withTags(['wcag2a', 'wcag2aa'])
-      .analyze();
+    // Verify page is valid before running axe analysis
+    const isPageValid = await page.evaluate(() => {
+      return document.body !== null && document.readyState === 'complete';
+    }).catch(() => false);
+    
+    if (!isPageValid) {
+      throw new Error('Page DOM is not ready for accessibility testing');
+    }
+    
+    // Run axe-core analysis with retry logic
+    let retries = 3;
+    let axeResults = null;
+    
+    while (retries > 0) {
+      try {
+        axeResults = await new AxeBuilder(page)
+          .withTags(['wcag2a', 'wcag2aa'])
+          .analyze();
+        break; // Success, exit the retry loop
+      } catch (error) {
+        retries--;
+        if (retries === 0) {
+          throw error; // Re-throw if all retries failed
+        }
+        console.warn(`AxeBuilder analysis failed, retrying (${retries} attempts left):`, (error as Error).message);
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait before retrying
+      }
+    }
+    
+    // Ensure axeResults is defined before proceeding
+    if (!axeResults) {
+      throw new Error('Failed to obtain accessibility results');
+    }
     
     // Process results - map axe violations to our format
     const rawViolations = axeResults.violations.map((violation) => {
@@ -213,18 +255,36 @@ async function crawlAndScan(
         // Don't crawl further if max depth reached
         if (depth >= maxDepth) continue;
         
-        // Navigate to extract URLs
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 });
-        
-        // Extract URLs for crawling
-        const links = await extractUrlsFromPage(page, baseDomain);
-        console.log(`Found ${links.length} links on ${url}`);
-        
-        // Add new URLs to the queue
-        for (const link of links) {
-          if (!visited.has(link) && results.length < pageSafetyLimit) {
-            queue.push({ url: link, depth: depth + 1 });
+        // Navigate to extract URLs with improved waiting strategy
+        try {
+          await page.goto(url, { 
+            waitUntil: ['networkidle2', 'domcontentloaded'],
+            timeout: 60000 
+          });
+          
+          // Wait for page to be fully loaded
+          await page.waitForFunction(() => {
+            return document.readyState === 'complete';
+          }, { timeout: 30000 }).catch(e => {
+            console.warn(`Page readyState timeout during crawling of ${url}, continuing anyway:`, e.message);
+          });
+          
+          // Wait a bit longer for any lazy-loaded content
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Extract URLs for crawling
+          const links = await extractUrlsFromPage(page, baseDomain);
+          console.log(`Found ${links.length} links on ${url}`);
+          
+          // Add new URLs to the queue
+          for (const link of links) {
+            if (!visited.has(link) && results.length < pageSafetyLimit) {
+              queue.push({ url: link, depth: depth + 1 });
+            }
           }
+        } catch (navigationError) {
+          console.error(`Error navigating to ${url} during crawling:`, navigationError);
+          // Continue with the next URL in the queue, we already have the scan result
         }
       } catch (error) {
         console.error(`Error processing ${url}:`, error);
