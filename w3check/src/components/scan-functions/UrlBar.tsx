@@ -14,9 +14,10 @@ type UrlFormProps = {
   onScanComplete: (results: ScanResult[]) => void;
   onScanError: (error: Error) => void;
   isLoading: boolean;
+  onScanStart?: (url: string) => void;
 };
 
-export default function UrlBar({ onScanComplete, onScanError, isLoading }: UrlFormProps) {
+export default function UrlBar({ onScanComplete, onScanError, isLoading, onScanStart }: UrlFormProps) {
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormInputs>({
     defaultValues: {
       url: '',
@@ -30,6 +31,9 @@ export default function UrlBar({ onScanComplete, onScanError, isLoading }: UrlFo
 
   const onSubmit: SubmitHandler<FormInputs> = async (data) => {
     try {
+      if (onScanStart) {
+        onScanStart(batchMode ? (data.batchUrls?.split('\n')[0] || '') : data.url);
+      }
       // When crawlEntireSite is true, use a high depth value (e.g., 100) to effectively crawl the entire site
       const maxDepth = data.crawlEntireSite ? 100 : 1;
             
