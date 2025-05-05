@@ -69,7 +69,7 @@ export async function enhanceWithAI(violation: ViolationType, url: string): Prom
       messages: [
         {
           role: "system",
-          content: "You are an accessibility expert specializing in WCAG compliance. Provide clear, concise suggestions to fix accessibility issues. Explain what needs to be changed and why, with code examples where helpful. Make sure to format your responses without any markdown."
+          content: "You are an accessibility expert specializing in WCAG compliance. Provide clear, concise suggestions to fix accessibility issues. Explain what needs to be changed and why, with code examples where helpful. DO NOT use markdown formatting like ### or ## headers, bullet points, or other markdown syntax in your response. Use plain text with clear section titles ending with colons."
         },
         {
           role: "user",
@@ -115,6 +115,15 @@ function generateDemoSuggestion(violation: ViolationType): string {
     'region': 'Ensure all content is contained within landmark regions like <header>, <nav>, <main>, <aside>, or <footer>, or sections with ARIA roles.'
   };
   
-  return suggestions[violation.id] || 
+  let suggestion = suggestions[violation.id] || 
     `Fix the ${violation.id} issue by ensuring the element meets WCAG ${violation.tags.join(', ')} criteria. Review the element and make sure it follows accessibility best practices.`;
+  
+  // Remove any markdown formatting that might be in the hardcoded suggestions
+  suggestion = suggestion.replace(/^###\s+(.+)$/gm, '$1:');
+  suggestion = suggestion.replace(/^##\s+(.+)$/gm, '$1:');
+  suggestion = suggestion.replace(/^#\s+(.+)$/gm, '$1:');
+  suggestion = suggestion.replace(/\*\*(.+?)\*\*/g, '$1'); // Remove bold
+  suggestion = suggestion.replace(/\*(.+?)\*/g, '$1');     // Remove italic
+  
+  return suggestion;
 } 
