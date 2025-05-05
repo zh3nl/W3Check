@@ -5,7 +5,6 @@ import { ScanResult } from '../../types';
 
 type FormInputs = {
   url: string;
-  country: string;
   crawlEntireSite: boolean;
   batchMode: boolean;
   batchUrls?: string;
@@ -21,7 +20,6 @@ export default function UrlBar({ onScanComplete, onScanError, isLoading }: UrlFo
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormInputs>({
     defaultValues: {
       url: '',
-      country: 'US',
       crawlEntireSite: false,
       batchMode: false,
       batchUrls: ''
@@ -36,8 +34,8 @@ export default function UrlBar({ onScanComplete, onScanError, isLoading }: UrlFo
       const maxDepth = data.crawlEntireSite ? 100 : 1;
             
       const payload = batchMode ? 
-        { urls: data.batchUrls?.split('\n').filter((url: string) => url.trim()), maxDepth, country: data.country } : 
-        { url: data.url, maxDepth, country: data.country };
+        { urls: data.batchUrls?.split('\n').filter((url: string) => url.trim()), maxDepth } : 
+        { url: data.url, maxDepth };
       
       const response = await fetch('/api/scan', {
         method: 'POST',
@@ -102,7 +100,7 @@ export default function UrlBar({ onScanComplete, onScanError, isLoading }: UrlFo
                 id="url"
                 placeholder="Type Website's URL"
                 {...register('url')}
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-l-lg focus:ring-emerald-500 focus:border-emerald-500 text-gray-900 placeholder-gray-400 bg-white"
+                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-gray-900 placeholder-gray-400 bg-white"
                 disabled={isLoading}
               />
             </div>
@@ -111,34 +109,13 @@ export default function UrlBar({ onScanComplete, onScanError, isLoading }: UrlFo
             )}
           </div>
 
-          <div className="w-32">
-            <select
-              {...register('country')}
-              className="block w-full py-3 pl-3 pr-10 border border-gray-300 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900 rounded-r-lg"
-              disabled={isLoading}
-            >
-              <option value="US" className="text-gray-900">
-                🇺🇸 United States
-              </option>
-              <option value="GB" className="text-gray-900">
-                🇬🇧 United Kingdom
-              </option>
-              <option value="CA" className="text-gray-900">
-                🇨🇦 Canada
-              </option>
-              <option value="AU" className="text-gray-900">
-                🇦🇺 Australia
-              </option>
-            </select>
-          </div>
-
           <button
             type="submit"
             disabled={isLoading}
             className={`px-6 py-3 rounded-lg font-medium text-white ${
               isLoading 
                 ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500'
+                : 'bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 cursor-pointer'
             }`}
           > 
             {isLoading ? (
@@ -169,34 +146,13 @@ export default function UrlBar({ onScanComplete, onScanError, isLoading }: UrlFo
           )}
           
           <div className="flex gap-2">
-            <div className="w-32">
-              <select
-                {...register('country')}
-                className="block w-full py-3 pl-3 pr-10 border border-gray-300 focus:ring-emerald-500 focus:border-emerald-500 rounded-lg bg-white text-gray-900"
-                disabled={isLoading}
-              >
-                <option value="US" className="text-gray-900">
-                  🇺🇸 United States
-                </option>
-                <option value="GB" className="text-gray-900">
-                  🇬🇧 United Kingdom
-                </option>
-                <option value="CA" className="text-gray-900">
-                  🇨🇦 Canada
-                </option>
-                <option value="AU" className="text-gray-900">
-                  🇦🇺 Australia
-                </option>
-              </select>
-            </div>
-
             <button
               type="submit"
               disabled={isLoading}
-              className={`px-6 py-3 rounded-lg font-medium text-white ${
+              className={`w-full px-6 py-3 rounded-lg font-medium text-white ${
                 isLoading 
                   ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500'
+                  : 'bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 cursor-pointer'
               }`}
             > 
               {isLoading ? (
