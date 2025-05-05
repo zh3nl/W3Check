@@ -45,7 +45,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col text-black">
+    <div className="min-h-screen flex flex-col text-black" style={{ background: 'linear-gradient(to right, #f7f9fd 0%, #f7f9fd 100%)' }}>
       <div className="fixed top-0 left-0 right-0 z-50 w-full">
         <Navbar />
       </div>

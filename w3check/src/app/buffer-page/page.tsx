@@ -54,7 +54,7 @@ export default function BufferPage() {
             This may take a while. You will see the results when scanning is completed
           </div>
           {/* Loading cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="col-span-2 h-32 rounded-xl bg-gray-100 flex items-center justify-center relative overflow-hidden">
               <LoadingSpinner size={40} />
             </div>
@@ -64,7 +64,7 @@ export default function BufferPage() {
             <div className="h-40 rounded-xl bg-white flex items-center justify-center shadow-md">
               <LoadingSpinner size={36} />
             </div>
-          </div>
+          </div> */}
           {/* Shimmer table */}
           <div className="bg-white rounded-xl shadow p-6">
             {Array.from({ length: 10 }).map((_, i) => <ShimmerRow key={i} />)}

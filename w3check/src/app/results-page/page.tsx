@@ -4,7 +4,8 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ScanResult } from '../../types';
-import SitePreview from '../../components/results-page/SitePreview';
+// import SitePreview from '../../components/results-page/SitePreview';
+import IssuesGraph from '../../components/results-page/IssuesGraph';
 
 // Dynamically import components to avoid SSR issues with browser-only libraries
 const ScanHistory = dynamic(() => import('../../components/scan-functions/ScanHistory'), { ssr: false });
@@ -384,18 +385,18 @@ function ResultsContent() {
 
 // Main component that doesn't directly use useSearchParams
 export default function ResultsPage() {
-  const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // const router = useRouter();
+  // const [sidebarOpen, setSidebarOpen] = useState(true);
   
-  const handleBackToHome = () => {
-    router.push("/");
-  };
+  // const handleBackToHome = () => {
+  //   router.push("/");
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Collapsible Sidebar */}
-      <aside className={`transition-all duration-300 bg-white border-r border-gray-100 flex flex-col items-center pt-8 px-2 min-h-screen ${sidebarOpen ? 'w-[340px] px-6' : 'w-14 px-2'} relative`}>
-        {/* Toggle button */}
+
+      {/* <aside className={`transition-all duration-300 bg-white border-r border-gray-100 flex flex-col items-center pt-8 px-2 min-h-screen ${sidebarOpen ? 'w-[340px] px-6' : 'w-14 px-2'} relative`}>
         <button
           className="absolute left-7 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 bg-blue-100 border border-blue-200 rounded-full p-1 shadow hover:bg-blue-200 transition"
           onClick={() => setSidebarOpen((open) => !open)}
@@ -418,25 +419,11 @@ export default function ResultsPage() {
               </span>
               Back to Home
             </button>
-            {/* Site Preview */}
-            {/* <SitePreview url={(() => {
-              if (typeof window !== 'undefined' && window.location && window.location.search.includes('id=')) {
-                const params = new URLSearchParams(window.location.search);
-                const scanHistory: ScanResult[] = JSON.parse(localStorage.getItem('scanHistory') || '[]');
-                const id = params.get('id');
-                const result = scanHistory.find((item: ScanResult) => item.id === id);
-                return result?.url;
-              }
-              return undefined;
-            })()} /> */}
-            {/* URL */}
             <a href="#" className="text-blue-700 underline text-base mb-4 break-all">https://www.stussy.com</a>
-            {/* Compliance status */}
-
-            {/* Fix Issues with sponsors and learn more */}
           </>
         )}
-      </aside>
+      </aside> */}
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
         <header className="bg-white shadow rounded-b-2xl px-12 py-8 flex flex-col md:flex-row md:items-center md:justify-between border-b border-blue-100">
@@ -461,6 +448,7 @@ export default function ResultsPage() {
           }>
             <ResultsContent />
           </Suspense>
+          <IssuesGraph />
         </main>
       </div>
     </div>
