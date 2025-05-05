@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { ViolationType } from '../types';
-import { aiConfig, isFeatureEnabled, isServiceConfigured } from '../config/ai-config';
+import { aiConfig, isFeatureEnabled} from '../config/ai-config';
 
 // Initialize OpenAI client
 const openai = new OpenAI({

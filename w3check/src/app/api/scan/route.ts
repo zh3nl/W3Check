@@ -15,14 +15,16 @@ const singleUrlSchema = z.object({
   url: z.string().trim().refine((val: string) => validator.isURL(val, { require_protocol: true }), {
     message: 'Please enter a valid URL with http:// or https://'
   }),
-  maxDepth: z.number().int().min(1).max(10).default(1)
+  maxDepth: z.number().int().min(1).max(100).default(1), // Allow up to 100 for full site crawling
+  country: z.string().optional()
 });
 
 const batchUrlSchema = z.object({
   urls: z.array(z.string().trim().refine((val: string) => validator.isURL(val, { require_protocol: true }), {
     message: 'Please enter valid URLs with http:// or https://'
   })).min(1).max(50),
-  maxDepth: z.number().int().min(1).max(5).default(1)
+  maxDepth: z.number().int().min(1).max(100).default(1), // Allow up to 100 for full site crawling
+  country: z.string().optional()
 });
 
 // Check rate limiting
@@ -63,13 +65,14 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json();
+    console.log("Request body:", JSON.stringify(body)); // Log the request body for debugging
     
     // Check if it's a batch request or single URL
     if (Array.isArray(body.urls)) {
       const validatedData = batchUrlSchema.parse(body);
       const scanId = uuidv4();
       
-      // For demonstration: Process immediately (in production, use a queue)
+      // Process batch of URLs
       const results = await scanBatchUrls(
         validatedData.urls, 
         validatedData.maxDepth,
@@ -88,10 +91,15 @@ export async function POST(request: NextRequest) {
         scanId
       );
       
-      return NextResponse.json(result);
+      // If result is an array (when crawling multiple pages), return it directly
+      // Otherwise wrap the single result in an array for consistent response format
+      const formattedResult = Array.isArray(result) ? result : [result];
+      
+      return NextResponse.json(formattedResult);
     }
   } catch (error: unknown) {
     if (isZodError(error)) {
+      console.error('Validation error:', JSON.stringify((error as z.ZodError).errors)); // Log validation errors
       return NextResponse.json(
         { error: 'Validation error', details: (error as z.ZodError).errors },
         { status: 400 }

@@ -16,25 +16,18 @@ export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleScanComplete = (result: ScanResult | ScanResult[]) => {
-    // Store the result in localStorage
+  const handleScanComplete = (results: ScanResult[]) => {
+    // Store the results in localStorage
     const storedHistory = localStorage.getItem('scanHistory') || '[]';
     let history: ScanResult[] = JSON.parse(storedHistory);
     
-    if (Array.isArray(result)) {
-      history = [...result, ...history];
-      localStorage.setItem('scanHistory', JSON.stringify(history));
-      
-      // Redirect to the results page with the first result
-      if (result.length > 0) {
-        router.push(`/results?id=${result[0].id}`);
-      }
-    } else {
-      history = [result, ...history];
-      localStorage.setItem('scanHistory', JSON.stringify(history));
-      
-      // Redirect to the results page with the result
-      router.push(`/results?id=${result.id}`);
+    // Add new results to history
+    history = [...results, ...history];
+    localStorage.setItem('scanHistory', JSON.stringify(history));
+    
+    // Redirect to the results page with the first result
+    if (results.length > 0) {
+      router.push(`/results?id=${results[0].id}`);
     }
     
     setIsLoading(false);
