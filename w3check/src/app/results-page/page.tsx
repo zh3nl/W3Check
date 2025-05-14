@@ -371,7 +371,7 @@ function ResultsContent() {
             
             {isMultiPage && <CrawlSummary results={relatedResults} />}
             
-            <h3 className="text-lg font-medium mb-4">
+            <h3 className="text-lg text-black font-medium mb-4">
               {isMultiPage ? 'Page Details' : 'Scan Details'}
             </h3>
             <ScanHistory history={isMultiPage ? relatedResults : [result]} />
@@ -414,20 +414,15 @@ function ResultsContent() {
 
 // Main component that doesn't directly use useSearchParams
 export default function ResultsPage() {
-  // const router = useRouter();
-  // const [sidebarOpen, setSidebarOpen] = useState(true);
-  
-  // const handleBackToHome = () => {
-  //   router.push("/");
-  // };
+  const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-emerald-50">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(to right, #f7f9fd 0%, #f7f9fd 100%)' }}>
       {/* Main Content */}
       <header className="bg-white shadow rounded-b-2xl px-12 py-8 flex flex-col md:flex-row md:items-center md:justify-between border-b border-emerald-100">
         <div>
-          <h1 className="text-2xl font-bold text-emerald-700 mb-2">
-            Audit results
+          <h1 onClick={() => router.push('/')} className="text-2xl font-bold text-emerald-700 mb-2 cursor-pointer">
+            W3check
           </h1>
           <div className="flex items-center text-gray-600 text-sm mb-2">
             <svg className="w-5 h-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" /><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
