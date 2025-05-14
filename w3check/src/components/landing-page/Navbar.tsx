@@ -60,7 +60,7 @@ const Navbar = () => {
             </Link>
             <Link
               href="/demo"
-              className="bg-teal-600 text-white hover:bg-teal-700 px-4 py-2  text-sm font-medium"
+              className="bg-emerald-600 text-white hover:bg-emerald-700 px-4 py-2  text-sm font-medium"
             >
               Request Demo
             </Link>
@@ -120,7 +120,7 @@ const Navbar = () => {
             </Link>
             <Link
               href="/demo"
-              className="bg-teal-600 text-white hover:bg-teal-700 block px-3 py-2 text-base font-medium"
+              className="bg-teal-600 text-white hover:bg-emerald-700 block px-3 py-2 text-base font-medium"
             >
               Request Demo
             </Link>

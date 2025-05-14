@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ScanResult } from '../../types';
 // import SitePreview from '../../components/results-page/SitePreview';
-import IssuesGraph from '../../components/results-page/IssuesGraph';
+
 
 // Dynamically import components to avoid SSR issues with browser-only libraries
 const ScanHistory = dynamic(() => import('../../components/scan-functions/ScanHistory'), { ssr: false });
@@ -414,15 +414,20 @@ function ResultsContent() {
 
 // Main component that doesn't directly use useSearchParams
 export default function ResultsPage() {
-  const router = useRouter();
+  // const router = useRouter();
+  // const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // const handleBackToHome = () => {
+  //   router.push("/");
+  // };
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(to right, #f7f9fd 0%, #f7f9fd 100%)' }}>
       {/* Main Content */}
-      <header className="bg-white shadow rounded-b-2xl px-12 py-8 flex flex-col md:flex-row md:items-center md:justify-between border-b border-emerald-100">
+      {/* <header className="bg-white shadow rounded-b-2xl px-12 py-8 flex flex-col md:flex-row md:items-center md:justify-between border-b border-emerald-100">
         <div>
-          <h1 onClick={() => router.push('/')} className="text-2xl font-bold text-emerald-700 mb-2 cursor-pointer">
-            W3check
+          <h1 className="text-2xl font-bold text-emerald-700 mb-2">
+            Audit results
           </h1>
           <div className="flex items-center text-gray-600 text-sm mb-2">
             <svg className="w-5 h-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" /><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -432,7 +437,7 @@ export default function ResultsPage() {
         <div className="flex items-center gap-4 mt-4 md:mt-0">
           <a href="#" className="text-gray-400 hover:text-emerald-700 text-sm flex items-center"><svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> Download audit</a>
         </div>
-      </header>
+      </header> */}
       <main className="p-8 overflow-y-auto">
         <Suspense fallback={
           <div className="flex justify-center items-center h-64">
@@ -441,7 +446,7 @@ export default function ResultsPage() {
         }>
           <ResultsContent />
         </Suspense>
-        <IssuesGraph />
+        {/* <IssuesGraph /> */}
       </main>
     </div>
   );

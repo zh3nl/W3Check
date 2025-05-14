@@ -8,6 +8,7 @@ import { ScanResult } from '../../types';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import Demo from './Demo';
+import Security from './Security';
 
 // Dynamically import components to avoid SSR issues with browser-only libraries
 const UrlBar = dynamic(() => import('../scan-functions/UrlBar'), { ssr: false });
@@ -81,7 +82,9 @@ export default function LandingPage() {
 
           {/* <LogoCarousel /> */}
         </div>
+        {/* <Security /> */}
       </main>
+
       <Footer />
     </div>
   );

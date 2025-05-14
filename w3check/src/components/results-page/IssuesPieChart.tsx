@@ -47,7 +47,7 @@ function getPieSegments(data: { a: number; aa: number; aria: number; pages: numb
   });
 }
 
-export default function IssuesGraph() {
+export default function IssuesPieChart() {
   const [tab, setTab] = useState('issues');
   const [view, setView] = useState('occurrences');
   const [period, setPeriod] = useState('6m');
@@ -57,21 +57,21 @@ export default function IssuesGraph() {
   const pieSegments = getPieSegments(latest);
 
   return (
-    <div className="bg-white rounded-xl shadow p-6 mt-8">
-      <h2 className="text-xl font-semibold mb-4">Distribution of Issues (Latest)</h2>
+    <div className="bg-white rounded-xl shadow p-6 mt-8 text-gray-800">
+      <h2 className="text-xl font-semibold mb-4">Distribution of Issues</h2>
       {/* Tabs and filters */}
       <div className="flex items-center border-b mb-6">
         <button
           className={`px-6 py-2 border-b-2 flex items-center gap-2 text-base font-medium ${tab === 'issues' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500'}`}
           onClick={() => setTab('issues')}
         >
-          <span className="text-lg">❗</span> History of issues
+          <span className="text-lg"></span> History of issues
         </button>
         <button
           className={`px-6 py-2 border-b-2 flex items-center gap-2 text-base font-medium ${tab === 'potential' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500'}`}
           onClick={() => setTab('potential')}
         >
-          <span className="text-lg">⚠️</span> History of potential issues
+          <span className="text-lg"></span> History of potential issues
         </button>
       </div>
       <div className="flex items-center gap-2 mb-4">
