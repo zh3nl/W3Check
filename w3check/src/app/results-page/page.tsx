@@ -44,6 +44,16 @@ function getRelatedResults(resultId: string, history: ScanResult[]): ScanResult[
   }
 }
 
+// Helper function to get domain from URL
+function getDomainFromUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname;
+  } catch {
+    return url; // Return original if parsing fails
+  }
+}
+
 // Create a component to display crawl statistics
 function CrawlSummary({ results }: { results: ScanResult[] }) {
   if (!results || !Array.isArray(results) || results.length === 0) {
@@ -234,6 +244,8 @@ function ResultsContent() {
   const [relatedResults, setRelatedResults] = useState<ScanResult[]>([]);
   const [isMultiPage, setIsMultiPage] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [domain, setDomain] = useState<string>("");
+  const [scanUrl, setScanUrl] = useState<string>("");
 
   useEffect(() => {
     // Fetch results from localStorage
@@ -279,6 +291,15 @@ function ResultsContent() {
             // Set the primary result (the one with the matching ID)
             const primary = history.find((item) => item.id === resultId);
             setResult(primary || related[0]);
+            
+            // Set domain and URL
+            if (primary?.url) {
+              setScanUrl(primary.url);
+              setDomain(getDomainFromUrl(primary.url));
+            } else if (related[0]?.url) {
+              setScanUrl(related[0].url);
+              setDomain(getDomainFromUrl(related[0].url));
+            }
           } else {
             console.log("No related results found for multi-page crawl");
             setResult(null);
@@ -289,6 +310,12 @@ function ResultsContent() {
           if (foundResult) {
             setResult(foundResult);
             setRelatedResults([foundResult]);
+            
+            // Set domain and URL
+            if (foundResult.url) {
+              setScanUrl(foundResult.url);
+              setDomain(getDomainFromUrl(foundResult.url));
+            }
           } else {
             console.log(`Result with ID ${resultId} not found`);
             setResult(null);
@@ -299,6 +326,12 @@ function ResultsContent() {
         if (history.length > 0) {
           setResult(history[0]);
           setRelatedResults([history[0]]);
+          
+          // Set domain and URL
+          if (history[0].url) {
+            setScanUrl(history[0].url);
+            setDomain(getDomainFromUrl(history[0].url));
+          }
         }
       }
     } catch (error) {
@@ -324,16 +357,12 @@ function ResultsContent() {
         <div>
           <div className="bg-white rounded-lg shadow px-5 py-6 sm:px-6 mb-6 overflow-x-auto break-words max-w-full">
             <div className="mb-6">
-
-
-              {/* <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900">
                 {isMultiPage 
-                  ? `Website Scan Results for ${new URL(result.url).hostname}`
-                  : `Scan Results for ${result.url}`
+                  ? `Website Scan Results for ${domain || "Unknown domain"}`
+                  : `Scan Results for ${scanUrl || "Unknown URL"}`
                 }
-              </h2> */}
-
-
+              </h2>
               <p className="text-sm text-gray-500">
                 Scanned on {new Date(result.timestamp).toLocaleString()}
                 {isMultiPage && ` • ${relatedResults.length} pages scanned`}
@@ -393,64 +422,32 @@ export default function ResultsPage() {
   // };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Collapsible Sidebar */}
-
-      {/* <aside className={`transition-all duration-300 bg-white border-r border-gray-100 flex flex-col items-center pt-8 px-2 min-h-screen ${sidebarOpen ? 'w-[340px] px-6' : 'w-14 px-2'} relative`}>
-        <button
-          className="absolute left-7 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 bg-blue-100 border border-blue-200 rounded-full p-1 shadow hover:bg-blue-200 transition"
-          onClick={() => setSidebarOpen((open) => !open)}
-          aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-        >
-          <svg
-            className={`w-6 h-6 text-blue-700 transform transition-transform ${sidebarOpen ? '' : 'rotate-180'}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        {sidebarOpen && (
-          <>
-            <button className="flex items-center text-gray-500 mb-8 self-start" onClick={handleBackToHome}>
-              <span className="mr-2">
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </span>
-              Back to Home
-            </button>
-            <a href="#" className="text-blue-700 underline text-base mb-4 break-all">https://www.stussy.com</a>
-          </>
-        )}
-      </aside> */}
-
+    <div className="min-h-screen bg-emerald-50">
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
-        <header className="bg-white shadow rounded-b-2xl px-12 py-8 flex flex-col md:flex-row md:items-center md:justify-between border-b border-blue-100">
-          <div>
-            <h1 className="text-2xl font-bold text-blue-700 mb-2">Scan results for <span className="text-blue-900">https://www.stussy.com</span>:</h1>
-
-            {/* <div className="flex items-center text-gray-600 text-sm mb-2">
-              <svg className="w-5 h-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" /><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              You&apos;ve scanned 1 page so far. Scan your entire domain to uncover all critical accessibility issues. <a href="#" className="ml-1 underline text-blue-700">Scan full domain</a>
-            </div> */}
-
+      <header className="bg-white shadow rounded-b-2xl px-12 py-8 flex flex-col md:flex-row md:items-center md:justify-between border-b border-emerald-100">
+        <div>
+          <h1 className="text-2xl font-bold text-emerald-700 mb-2">
+            Audit results
+          </h1>
+          <div className="flex items-center text-gray-600 text-sm mb-2">
+            <svg className="w-5 h-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" /><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Scan your entire domain to uncover all critical accessibility issues. <a href="#" className="ml-1 underline text-emerald-700">Scan full domain</a>
           </div>
-          <div className="flex items-center gap-4 mt-4 md:mt-0">
-            <a href="#" className="text-gray-400 hover:text-blue-700 text-sm flex items-center"><svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> Download audit</a>
+        </div>
+        <div className="flex items-center gap-4 mt-4 md:mt-0">
+          <a href="#" className="text-gray-400 hover:text-emerald-700 text-sm flex items-center"><svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> Download audit</a>
+        </div>
+      </header>
+      <main className="p-8 overflow-y-auto">
+        <Suspense fallback={
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
-        </header>
-        <main className="flex-1 p-8 overflow-y-auto">
-          <Suspense fallback={
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-          }>
-            <ResultsContent />
-          </Suspense>
-          <IssuesGraph />
-        </main>
-      </div>
+        }>
+          <ResultsContent />
+        </Suspense>
+        <IssuesGraph />
+      </main>
     </div>
   );
 }
