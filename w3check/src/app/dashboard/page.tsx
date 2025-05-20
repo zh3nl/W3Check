@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface ScanResult {
   id: string;
@@ -72,7 +73,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {domains.length === 0 ? (
             <div className="col-span-2 flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-gray-200">
-              <img src="/empty-state.svg" alt="No data" className="w-32 h-32 mb-4 opacity-60" />
+              <Image src="/empty-state.svg" alt="No data" width={128} height={128} className="mb-4 opacity-60" />
               <div className="text-lg font-semibold mb-2">Select a site</div>
               <div className="text-gray-500 text-sm mb-2">No domains have been scanned yet. Use the scan tool to add your first domain.</div>
             </div>
@@ -84,7 +85,7 @@ export default function DashboardPage() {
           ) : (
             filteredDomains.map(domain => (
               <div key={domain.url} className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col items-center justify-center min-h-[220px]">
-                <img src="/empty-state.svg" alt="No data" className="w-20 h-20 mb-4 opacity-60" />
+                <Image src="/empty-state.svg" alt="No data" width={80} height={80} className="mb-4 opacity-60" />
                 <div className="text-lg font-semibold mb-2 break-all text-gray-900">{domain.url}</div>
                 <Link href={`/results-page?id=${domain.id}`} className="mt-2 text-emerald-700 underline text-sm">View results</Link>
               </div>
