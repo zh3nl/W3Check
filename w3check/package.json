@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@axe-core/puppeteer": "^4.8.4",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/supabase-js": "^2.49.5",
     "axe-core": "^4.8.4",
     "axios": "^1.6.7",
     "lodash": "^4.17.21",
