@@ -1,13 +1,16 @@
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { ViolationType } from '../types';
 import { aiConfig} from '../config/ai-config';
 
-// Initialize OpenAI client
-// In a real application, this would use environment variables for the API key
-const openai = new OpenAI({
-  baseURL: "https://api.novita.ai/v3/openai",
-  apiKey: aiConfig.novitaAi.apiKey || 'demo-api-key', // Default to placeholder in development
+// Initialize Anthropic client
+const anthropic = new Anthropic({
+  apiKey: aiConfig.anthropic.apiKey || 'demo-api-key', // Default to placeholder in development
 });
+
+// Debug log in development
+if (process.env.NODE_ENV === 'development') {
+  console.log('Anthropic API Key configured:', Boolean(aiConfig.anthropic.apiKey));
+}
 
 // Map WCAG criteria to more descriptive explanations
 const wcagExplanations: Record<string, string> = {
@@ -40,7 +43,7 @@ const wcagExplanations: Record<string, string> = {
 export async function enhanceWithAI(violation: ViolationType, url: string): Promise<string> {
   try {
     // In a demo version, we could return pre-defined suggestions for common issues
-    if (process.env.NODE_ENV !== 'production' || !process.env.OPENAI_API_KEY) {
+    if (process.env.NODE_ENV !== 'production' || !process.env.ANTHROPIC_API_KEY) {
       return generateDemoSuggestion(violation);
     }
     
@@ -64,23 +67,20 @@ export async function enhanceWithAI(violation: ViolationType, url: string): Prom
     `;
     
     // Generate AI suggestion
-    const response = await openai.chat.completions.create({
-      model: "meta-llama/llama-3.1-8b-instruct",
+    const response = await anthropic.messages.create({
+      model: "claude-3-opus-20240229",
+      max_tokens: 500,
+      temperature: 0.3,
+      system: "You are an accessibility expert specializing in WCAG compliance. Provide clear, concise suggestions to fix accessibility issues. Explain what needs to be changed and why, with code examples where helpful. DO NOT use markdown formatting like ### or ## headers, bullet points, or other markdown syntax in your response. Use plain text with clear section titles ending with colons.",
       messages: [
-        {
-          role: "system",
-          content: "You are an accessibility expert specializing in WCAG compliance. Provide clear, concise suggestions to fix accessibility issues. Explain what needs to be changed and why, with code examples where helpful. DO NOT use markdown formatting like ### or ## headers, bullet points, or other markdown syntax in your response. Use plain text with clear section titles ending with colons."
-        },
         {
           role: "user",
           content: `Please provide a suggestion to fix this accessibility issue and format it so a human can read and understand it clearly:\n${context}`
         }
-      ],
-      max_tokens: 500,
-      temperature: 0.3, // Lower temperature for more focused, professional responses
+      ]
     });
     
-    return response.choices[0]?.message.content || 'No AI suggestion available';
+    return response.content[0].type === 'text' ? response.content[0].text : 'No AI suggestion available';
     
   } catch (error) {
     console.error('Error generating AI suggestion:', error);

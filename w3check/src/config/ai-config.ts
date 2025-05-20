@@ -13,6 +13,13 @@ export const aiConfig = {
     temperature: 0.3, // Lower for more focused responses
   },
   
+  anthropic: {
+    apiKey: process.env.ANTHROPIC_API_KEY || '',
+    defaultModel: 'claude-3-opus-20240229',
+    maxTokens: 500,
+    temperature: 0.3,
+  },
+  
   novitaAi: {
     apiKey: process.env.NOVITA_AI_API_KEY || '',
     endpoint: process.env.NOVITA_AI_ENDPOINT || 'https://api.novita-ai.com/v1',
@@ -24,6 +31,7 @@ export const aiConfig = {
     generateAltText: true,
     suggestAriaFixes: true,
     prioritizeIssues: true,
+    useAnthropic: process.env.USE_ANTHROPIC === 'true',
     useNovitaAi: process.env.USE_NOVITA_AI === 'true',
     useFallbackSuggestions: true,
   }
@@ -36,14 +44,14 @@ export function isFeatureEnabled(featureName: keyof typeof aiConfig.features): b
 /**
  * Check if specific AI service is configured with API key
  */
-export function isServiceConfigured(serviceName: 'openai' | 'novitaAi'): boolean {
+export function isServiceConfigured(serviceName: 'openai' | 'novitaAi' | 'anthropic'): boolean {
   return Boolean(aiConfig[serviceName].apiKey);
 }
 
 /**
  * Get configured model for a service
  */
-export function getAiModel(service: 'openai' | 'novitaAi', modelType?: string): string {
+export function getAiModel(service: 'openai' | 'novitaAi' | 'anthropic', modelType?: string): string {
   switch (service) {
     case 'openai':
       return modelType === 'vision' 
@@ -51,6 +59,8 @@ export function getAiModel(service: 'openai' | 'novitaAi', modelType?: string): 
         : aiConfig.openai.defaultModel;
     case 'novitaAi':
       return aiConfig.novitaAi.accessibilityModel;
+    case 'anthropic':
+      return aiConfig.anthropic.defaultModel;
     default:
       return aiConfig.openai.defaultModel;
   }

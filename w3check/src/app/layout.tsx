@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WCAG Compliance Scanner - Novita AI",
+  title: "W3Check",
   description: "WCAG 2.0 (AA) Accessibility Scanner powered by AI to check and fix accessibility issues",
 };
 
