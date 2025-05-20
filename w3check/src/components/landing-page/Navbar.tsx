@@ -56,7 +56,7 @@ const Navbar = () => {
               href="/signin"
               className="text-gray-600 hover:text-gray-900 px-4 py-2 text-sm font-medium border border-transparent"
             >
-              Sign In
+              Sign In/Sign Up
             </Link>
             <Link
               href="/demo"
