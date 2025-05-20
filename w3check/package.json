@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@auth0/auth0-react": "^2.3.0",
+    "@auth0/nextjs-auth0": "^4.5.1",
     "@axe-core/puppeteer": "^4.8.4",
     "axe-core": "^4.8.4",
     "axios": "^1.6.7",

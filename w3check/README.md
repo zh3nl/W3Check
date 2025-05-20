@@ -1,4 +1,4 @@
-# WCAG Compliance Scanner
+# W3Check
 
 An AI-powered web accessibility checker that scans websites for WCAG 2.0 (AA) compliance issues and provides actionable solutions.
 

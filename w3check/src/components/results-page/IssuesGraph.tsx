@@ -21,44 +21,28 @@ const colors = {
   pages: '#6B7280', // gray
 };
 
-function getPieSegments(data: { a: number; aa: number; aria: number; pages: number }) {
-  const total = data.a + data.aa + data.aria + data.pages;
-  const segments = [
-    { key: 'a', value: data.a, color: colors.a },
-    { key: 'aa', value: data.aa, color: colors.aa },
-    { key: 'aria', value: data.aria, color: colors.aria },
-    { key: 'pages', value: data.pages, color: colors.pages },
-  ];
-  let startAngle = 0;
-  return segments.map(seg => {
-    const angle = (seg.value / total) * 360;
-    const endAngle = startAngle + angle;
-    const largeArc = angle > 180 ? 1 : 0;
-    // Pie chart center and radius
-    const r = 80, cx = 100, cy = 100;
-    const x1 = cx + r * Math.cos((Math.PI * startAngle) / 180);
-    const y1 = cy + r * Math.sin((Math.PI * startAngle) / 180);
-    const x2 = cx + r * Math.cos((Math.PI * endAngle) / 180);
-    const y2 = cy + r * Math.sin((Math.PI * endAngle) / 180);
-    const d = `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2} Z`;
-    const result = { ...seg, d };
-    startAngle = endAngle;
-    return result;
-  });
-}
-
 export default function IssuesGraph() {
   const [tab, setTab] = useState('issues');
   const [view, setView] = useState('occurrences');
   const [period, setPeriod] = useState('6m');
 
-  // Use the latest data point for the pie chart
-  const latest = mockData[mockData.length - 1];
-  const pieSegments = getPieSegments(latest);
+  // SVG chart dimensions
+  const width = 900;
+  const height = 350;
+  const padding = 60;
+
+  // Find min/max for scaling
+  const maxY = Math.max(...mockData.map(d => Math.max(d.a, d.aa, d.aria, d.pages)));
+  const minY = 0;
+
+  // Y axis scaling
+  const yScale = (val: number) => height - padding - ((val - minY) / (maxY - minY)) * (height - 2 * padding);
+  // X axis scaling
+  const xScale = (i: number) => padding + i * ((width - 2 * padding) / (mockData.length - 1));
 
   return (
     <div className="bg-white rounded-xl shadow p-6 mt-8">
-      <h2 className="text-xl font-semibold mb-4">Distribution of Issues (Latest)</h2>
+      <h2 className="text-xl font-semibold mb-4">Progress over time</h2>
       {/* Tabs and filters */}
       <div className="flex items-center border-b mb-6">
         <button
@@ -86,20 +70,34 @@ export default function IssuesGraph() {
           Export to CSV
         </button>
       </div>
-      {/* Pie Chart */}
-      <div className="flex flex-col items-center">
-        <svg width={200} height={200} viewBox="0 0 200 200">
-          {pieSegments.map(seg => (
-            <path key={seg.key} d={seg.d} fill={seg.color} />
+      {/* Chart */}
+      <div className="overflow-x-auto">
+        <svg width={width} height={height} className="block">
+          {/* Y axis grid lines and labels */}
+          {[0.25,0.5,0.75,1].map((p, i) => (
+            <g key={i}>
+              <line x1={padding} x2={width-padding} y1={yScale(maxY*p)} y2={yScale(maxY*p)} stroke="#E5E7EB" strokeDasharray="4 4" />
+              <text x={padding-10} y={yScale(maxY*p)+5} textAnchor="end" fontSize="13" fill="#6B7280">{Math.round(maxY*p).toLocaleString()}</text>
+              <text x={width-padding+10} y={yScale(maxY*p)+5} textAnchor="start" fontSize="13" fill="#6B7280">{Math.round((maxY*p)/20).toLocaleString()}</text>
+            </g>
           ))}
+          {/* X axis labels */}
+          {mockData.map((d, i) => (
+            <text key={d.date} x={xScale(i)} y={height-padding+20} textAnchor="middle" fontSize="13" fill="#6B7280">{d.date}</text>
+          ))}
+          {/* Lines */}
+          <polyline fill="none" stroke={colors.a} strokeWidth="3" points={mockData.map((d,i)=>`${xScale(i)},${yScale(d.a)}`).join(' ')} />
+          <polyline fill="none" stroke={colors.aa} strokeWidth="3" points={mockData.map((d,i)=>`${xScale(i)},${yScale(d.aa)}`).join(' ')} />
+          <polyline fill="none" stroke={colors.aria} strokeWidth="3" strokeDasharray="6 4" points={mockData.map((d,i)=>`${xScale(i)},${yScale(d.aria)}`).join(' ')} />
+          <polyline fill="none" stroke={colors.pages} strokeWidth="2" strokeDasharray="2 4" points={mockData.map((d,i)=>`${xScale(i)},${yScale(d.pages)}`).join(' ')} />
         </svg>
-        {/* Legend */}
-        <div className="flex items-center gap-6 mt-4 text-sm">
-          <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#C026D3] inline-block"></span> Level A</div>
-          <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#6366F1] inline-block"></span> Level AA</div>
-          <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#2563EB] inline-block border border-[#2563EB] border-dashed"></span> WAI-ARIA authoring practices</div>
-          <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#6B7280] inline-block border border-[#6B7280] border-dashed"></span> Number of pages</div>
-        </div>
+      </div>
+      {/* Legend */}
+      <div className="flex items-center gap-6 mt-4 text-sm">
+        <div className="flex items-center gap-2"><span className="w-4 h-1.5 rounded bg-[#C026D3] inline-block"></span> Level A</div>
+        <div className="flex items-center gap-2"><span className="w-4 h-1.5 rounded bg-[#6366F1] inline-block"></span> Level AA</div>
+        <div className="flex items-center gap-2"><span className="w-4 h-1.5 rounded bg-[#2563EB] inline-block border border-[#2563EB] border-dashed"></span> WAI-ARIA authoring practices</div>
+        <div className="flex items-center gap-2"><span className="w-4 h-1.5 rounded bg-[#6B7280] inline-block border border-[#6B7280] border-dashed"></span> Number of pages</div>
       </div>
     </div>
   );
