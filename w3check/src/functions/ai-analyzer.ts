@@ -80,229 +80,262 @@ export async function analyzeAccessibilityViolations(
   const prioritizedViolations = [...violations].sort(
     (a, b) => impactPriorityMap[a.impact] - impactPriorityMap[b.impact]
   );
+
+  // Group violations by type for batch processing
+  const violationGroups = new Map<string, ViolationType[]>();
   
-  // Process each violation with AI enhancement
-  const enhancedViolations = await Promise.all(
-    prioritizedViolations.map(async (violation) => {
-      try {
-        // Determine which WCAG criteria apply to this violation
-        const wcagCriteria = axeToWcagMap[violation.id] || [];
-        
-        // Add AI-powered enhancements based on violation type
-        if (violation.id === 'image-alt' && isFeatureEnabled('generateAltText')) {
-          // For missing alt text, generate suggestions with OpenAI Vision
-          await enhanceImageAltViolation(violation, pageUrl);
-        } else if ((violation.id.includes('aria') || violation.id === 'form-label') && 
-                  isFeatureEnabled('suggestAriaFixes')) {
-          // For ARIA and form issues, use Novita AI or OpenAI to suggest improvements
-          await enhanceAriaViolation(violation, pageContent);
-        } else {
-          // For other violations, provide general AI-enhanced explanation
-          await enhanceGeneralViolation(violation, wcagCriteria);
-        }
-        
-        return violation;
-      } catch (error) {
-        console.error(`Error enhancing violation ${violation.id}:`, error);
-        // Add a fallback suggestion if AI enhancement fails
+  prioritizedViolations.forEach(violation => {
+    const groupKey = violation.id;
+    if (!violationGroups.has(groupKey)) {
+      violationGroups.set(groupKey, []);
+    }
+    violationGroups.get(groupKey)?.push(violation);
+  });
+
+  // Process each group of violations
+  const enhancedViolations: ViolationType[] = [];
+  
+  for (const [groupKey, groupViolations] of violationGroups) {
+    try {
+      if (groupKey === 'image-alt' && isFeatureEnabled('generateAltText')) {
+        // Process image alt violations in batches
+        const imageViolations = await processImageAltViolations(groupViolations, pageUrl);
+        enhancedViolations.push(...imageViolations);
+      } else if ((groupKey.includes('aria') || groupKey === 'form-label') && 
+                isFeatureEnabled('suggestAriaFixes')) {
+        // Process ARIA violations in batches
+        const ariaViolations = await processAriaViolations(groupViolations, pageContent);
+        enhancedViolations.push(...ariaViolations);
+      } else {
+        // Process general violations in batches
+        const generalViolations = await processGeneralViolations(groupViolations);
+        enhancedViolations.push(...generalViolations);
+      }
+    } catch (error) {
+      console.error(`Error processing violation group ${groupKey}:`, error);
+      // Add fallback suggestions for failed batch
+      groupViolations.forEach(violation => {
         if (!violation.aiSuggestion) {
           violation.aiSuggestion = generateBasicSuggestion(violation);
         }
-        return violation;
-      }
-    })
-  );
+        enhancedViolations.push(violation);
+      });
+    }
+  }
   
   return enhancedViolations;
 }
 
 /**
- * Generate alt text suggestions for images
+ * Process a batch of image alt violations
  */
-async function enhanceImageAltViolation(
-  violation: ViolationType,
+async function processImageAltViolations(
+  violations: ViolationType[],
   pageUrl: string
-): Promise<void> {
-  // Extract image URLs from violation nodes
-  const imageUrls: string[] = [];
-  
-  for (const node of violation.nodes) {
-    const match = node.html.match(/src=["']([^"']+)["']/);
-    if (match && match[1]) {
-      let imageUrl = match[1];
-      
-      // Convert relative URLs to absolute
-      if (imageUrl.startsWith('/')) {
-        const urlObj = new URL(pageUrl);
-        imageUrl = `${urlObj.origin}${imageUrl}`;
+): Promise<ViolationType[]> {
+  // Extract all image URLs from violations
+  const imageData = violations.map(violation => {
+    const imageUrls: string[] = [];
+    for (const node of violation.nodes) {
+      const match = node.html.match(/src=["']([^"']+)["']/);
+      if (match && match[1]) {
+        let imageUrl = match[1];
+        if (imageUrl.startsWith('/')) {
+          const urlObj = new URL(pageUrl);
+          imageUrl = `${urlObj.origin}${imageUrl}`;
+        }
+        imageUrls.push(imageUrl);
       }
-      
-      imageUrls.push(imageUrl);
     }
-  }
+    return { violation, imageUrls };
+  });
 
-  if (imageUrls.length === 0) {
-    violation.aiSuggestion = 'Could not extract image URLs to generate alt text suggestions.';
-    return;
-  }
-
-  try {
-    // First image URL for analysis
-    const imageUrl = imageUrls[0];
-    let altTextSuggestion = '';
-    
-    // Use OpenAI Vision for alt text suggestion
-    altTextSuggestion = await generateAltTextWithOpenAI(imageUrl);
-    
-    if (!altTextSuggestion) {
-      violation.aiSuggestion = 'Could not generate alt text suggestion for the image.';
-      return;
-    }
-    
-    // Format the response with before/after examples
-    const beforeCode = violation.nodes[0]?.html || '<img src="image.jpg">';
-    const afterCode = beforeCode.replace(/alt=["'][^"']*["']|<img/, match => {
-      return match === '<img' 
-        ? `<img alt="${altTextSuggestion}"` 
-        : `alt="${altTextSuggestion}"`;
+  // Filter out violations without image URLs
+  const validImageData = imageData.filter(data => data.imageUrls.length > 0);
+  
+  if (validImageData.length === 0) {
+    return violations.map(violation => {
+      violation.aiSuggestion = 'Could not extract image URLs to generate alt text suggestions.';
+      return violation;
     });
-    violation.aiSuggestion = `Before: ${beforeCode}\nAfter: ${afterCode}`;
-  } catch {
-    violation.aiSuggestion = 'Error generating alt text suggestion.';
   }
-}
 
-/**
- * Generate alt text using OpenAI Vision API
- */
-async function generateAltTextWithOpenAI(imageUrl: string): Promise<string> {
   try {
-    // Using a text-only prompt as a workaround for image analysis
-    // In a production environment, you'd use the actual vision API
-    const prompt = `Describe this image concisely and accurately: ${imageUrl}`;
-    
+    // Make a single API call for all images
+    const prompt = `Describe these images concisely and accurately:\n${validImageData
+      .map((data, index) => `${index + 1}. ${data.imageUrls[0]}`)
+      .join('\n')}`;
+
     const response = await openai.chat.completions.create({
       model: "meta-llama/llama-3.1-8b-instruct",
       messages: [
         {
           role: "system",
-          content: "You are an accessibility expert specializing in writing concise, descriptive alt text for images."
+          content: "You are an accessibility expert specializing in writing concise, descriptive alt text for images. Provide alt text suggestions for each image, numbered to match the input."
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      max_tokens: 100
+      max_tokens: 500
     });
 
-    return response.choices[0]?.message.content || '';
+    const suggestions = response.choices[0]?.message.content?.split('\n') || [];
+    
+    // Map suggestions back to violations
+    validImageData.forEach((data, index) => {
+      const suggestion = suggestions[index]?.replace(/^\d+\.\s*/, '') || '';
+      if (suggestion) {
+        const beforeCode = data.violation.nodes[0]?.html || '<img src="image.jpg">';
+        const afterCode = beforeCode.replace(/alt=["'][^"']*["']|<img/, match => {
+          return match === '<img' 
+            ? `<img alt="${suggestion}"` 
+            : `alt="${suggestion}"`;
+        });
+        data.violation.aiSuggestion = `Before: ${beforeCode}\nAfter: ${afterCode}`;
+      } else {
+        data.violation.aiSuggestion = 'Could not generate alt text suggestion for the image.';
+      }
+    });
+
+    return violations;
   } catch (error) {
-    console.error('Error calling OpenAI for alt text generation:', error);
-    return '';
+    console.error('Error processing image alt violations:', error);
+    return violations.map(violation => {
+      violation.aiSuggestion = 'Error generating alt text suggestion.';
+      return violation;
+    });
   }
 }
 
 /**
- * Enhance ARIA and form-related violations with AI
+ * Process a batch of ARIA violations
  */
-async function enhanceAriaViolation(
-  violation: ViolationType,
+async function processAriaViolations(
+  violations: ViolationType[],
   pageContent: string
-): Promise<void> {
+): Promise<ViolationType[]> {
   try {
-    const elementHtml = violation.nodes[0]?.html || '';
-    const failureSummary = violation.nodes[0]?.failureSummary || '';
-    
-    // Default to OpenAI
+    // Prepare batch prompt
+    const batchPrompt = violations.map((violation, index) => {
+      const elementHtml = violation.nodes[0]?.html || '';
+      const failureSummary = violation.nodes[0]?.failureSummary || '';
+      return `
+Issue ${index + 1}:
+Element: ${elementHtml}
+Issue: ${violation.description}
+Failure: ${failureSummary}`;
+    }).join('\n\n');
+
     const response = await openai.chat.completions.create({
       model: "meta-llama/llama-3.1-8b-instruct",
       messages: [
         {
           role: "system",
-          content: "You are an accessibility expert specializing in ARIA, semantic HTML, and form accessibility. Provide specific code fixes for accessibility issues."
+          content: "You are an accessibility expert specializing in ARIA, semantic HTML, and form accessibility. Provide specific code fixes for accessibility issues. Number your responses to match the input issues."
         },
         {
           role: "user",
-          content: `Fix this accessibility issue:
-          
-Element: ${elementHtml}
-Issue: ${violation.description}
-Failure: ${failureSummary}
-Page Context: ${pageContent.length > 500 ? pageContent.substring(0, 500) + '...' : pageContent}
+          content: `Fix these accessibility issues:\n${batchPrompt}\n\nPage Context: ${pageContent.length > 500 ? pageContent.substring(0, 500) + '...' : pageContent}
 
-Provide a concise explanation in simple terms, specific code fix with before/after examples, and reference to WCAG guidelines.`
+For each issue, provide a concise explanation in simple terms, specific code fix with before/after examples, and reference to WCAG guidelines.`
         }
       ],
-      max_tokens: aiConfig.openai.maxTokens
+      max_tokens: aiConfig.openai.maxTokens * violations.length
     });
 
-    const suggestion = response.choices[0]?.message.content || '';
+    const suggestions = response.choices[0]?.message.content?.split(/\n(?=Issue \d+:)/) || [];
     
-    // Further process and structure the AI response
-    violation.aiSuggestion = formatAiSuggestion(suggestion, violation);
-    
+    // Map suggestions back to violations
+    violations.forEach((violation, index) => {
+      const suggestion = suggestions[index]?.replace(/^Issue \d+:\s*/, '') || '';
+      if (suggestion) {
+        violation.aiSuggestion = formatAiSuggestion(suggestion, violation);
+      } else {
+        violation.aiSuggestion = 'Error generating AI-powered ARIA suggestion.';
+      }
+    });
+
+    return violations;
   } catch (error) {
-    console.error('Error enhancing ARIA violation with AI:', error);
-    violation.aiSuggestion = 'Error generating AI-powered ARIA suggestion.';
+    console.error('Error processing ARIA violations:', error);
+    return violations.map(violation => {
+      violation.aiSuggestion = 'Error generating AI-powered ARIA suggestion.';
+      return violation;
+    });
   }
 }
 
 /**
- * Enhance general accessibility violations with AI context
+ * Process a batch of general violations
  */
-async function enhanceGeneralViolation(
-  violation: ViolationType,
-  wcagCriteria: string[]
-): Promise<void> {
+async function processGeneralViolations(
+  violations: ViolationType[]
+): Promise<ViolationType[]> {
   try {
-    // Get related WCAG criteria information
-    const criteriaInfo = wcagCriteria.map(id => {
-      const info = wcagCriteriaMap[id];
-      return info 
-        ? `WCAG ${id} (Level ${info.level}): ${info.explanation}`
-        : `WCAG criterion related to ${violation.id}`;
-    }).join('\n');
-    
-    // Extract element from first node
-    const elementHtml = violation.nodes[0]?.html || '';
-    const failureSummary = violation.nodes[0]?.failureSummary || '';
-    
+    // Prepare batch prompt
+    const batchPrompt = violations.map((violation, index) => {
+      const wcagCriteria = axeToWcagMap[violation.id] || [];
+      const criteriaInfo = wcagCriteria.map(id => {
+        const info = wcagCriteriaMap[id];
+        return info 
+          ? `WCAG ${id} (Level ${info.level}): ${info.explanation}`
+          : `WCAG criterion related to ${violation.id}`;
+      }).join('\n');
+
+      const elementHtml = violation.nodes[0]?.html || '';
+      const failureSummary = violation.nodes[0]?.failureSummary || '';
+      
+      return `
+Issue ${index + 1}:
+Element: ${elementHtml}
+Issue: ${violation.description}
+Failure: ${failureSummary}
+WCAG Criteria: ${criteriaInfo}`;
+    }).join('\n\n');
+
     const response = await openai.chat.completions.create({
       model: "meta-llama/llama-3.1-8b-instruct",
       messages: [
         {
           role: "system",
-          content: `You are an accessibility expert explaining WCAG violations in simple, non-technical language with clear code examples. Make sure to format your responses without any markdown`
+          content: "You are an accessibility expert explaining WCAG violations in simple, non-technical language with clear code examples. Number your responses to match the input issues."
         },
         {
           role: "user",
-          content: `Explain this accessibility issue in simple terms and provide a fix. Please format it so that a human can understand it:
-          
-Element: ${elementHtml}
-Issue: ${violation.description}
-Failure: ${failureSummary}
-WCAG Criteria: ${criteriaInfo}
+          content: `Explain these accessibility issues in simple terms and provide fixes:\n${batchPrompt}
 
-Keep your explanation clear and non-technical. Include code examples showing before and after.`
+For each issue, keep your explanation clear and non-technical. Include code examples showing before and after.`
         }
       ],
-      max_tokens: aiConfig.openai.maxTokens
+      max_tokens: aiConfig.openai.maxTokens * violations.length
     });
 
-    const suggestion = response.choices[0]?.message.content || '';
+    const suggestions = response.choices[0]?.message.content?.split(/\n(?=Issue \d+:)/) || [];
     
-    // Format and enhance the suggestion
-    violation.aiSuggestion = formatAiSuggestion(suggestion, violation);
-    
+    // Map suggestions back to violations
+    violations.forEach((violation, index) => {
+      const suggestion = suggestions[index]?.replace(/^Issue \d+:\s*/, '') || '';
+      if (suggestion) {
+        violation.aiSuggestion = formatAiSuggestion(suggestion, violation);
+      } else {
+        violation.aiSuggestion = 'Error generating AI-powered suggestion.';
+      }
+    });
+
+    return violations;
   } catch (error) {
-    console.error('Error enhancing general violation with AI:', error);
-    violation.aiSuggestion = 'Error generating AI-powered suggestion.';
+    console.error('Error processing general violations:', error);
+    return violations.map(violation => {
+      violation.aiSuggestion = 'Error generating AI-powered suggestion.';
+      return violation;
+    });
   }
 }
 
 /**
- * Format AI suggestions into a consistent structure
+ * Format AI suggestion with proper structure
  */
 function formatAiSuggestion(suggestion: string, violation: ViolationType): string {
   // Extract WCAG references from the suggestion or use defaults
@@ -352,7 +385,7 @@ ${getPriorityDescription(violation.impact)}
 }
 
 /**
- * Generate a basic suggestion when AI is not available
+ * Generate basic suggestion without AI enhancement
  */
 function generateBasicSuggestion(violation: ViolationType): string {
   const suggestions: Record<string, string> = {
@@ -392,7 +425,7 @@ ${getPriorityDescription(violation.impact)}
 }
 
 /**
- * Get human-readable description of impact priority
+ * Get priority description based on impact level
  */
 function getPriorityDescription(impact: string): string {
   switch (impact) {
