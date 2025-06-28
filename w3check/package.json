@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.55.0",
     "@auth0/auth0-react": "^2.3.0",
     "@auth0/nextjs-auth0": "^4.5.1",
     "@axe-core/puppeteer": "^4.8.4",

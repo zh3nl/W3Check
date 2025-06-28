@@ -1,11 +1,10 @@
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { ViolationType } from '../types';
 import { aiConfig, isFeatureEnabled} from '../config/ai-config';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  baseURL: "https://api.novita.ai/v3/openai",
-  apiKey: aiConfig.novitaAi.apiKey || 'demo-api-key', // Default to placeholder in development
+// Initialize Anthropic client
+const anthropic = new Anthropic({
+  apiKey: aiConfig.anthropic.apiKey || 'demo-api-key', // Default to placeholder in development
 });
 
 // Map WCAG success criteria to detailed explanations
@@ -162,31 +161,63 @@ async function processImageAltViolations(
 
   try {
     // Make a single API call for all images
-    const prompt = `Describe these images concisely and accurately:\n${validImageData
-      .map((data, index) => `${index + 1}. ${data.imageUrls[0]}`)
-      .join('\n')}`;
+    const prompt = `Generate concise, descriptive alt text for these images. Respond with ONLY the alt text for each image, numbered exactly as shown below:
 
-    const response = await openai.chat.completions.create({
-      model: "meta-llama/llama-3.1-8b-instruct",
+${validImageData
+      .map((data, index) => `${index + 1}. ${data.imageUrls[0]}`)
+      .join('\n')}
+
+Respond with ONLY the numbered list of alt text. No introductory text, no explanations, no additional commentary. Just:
+1. [actual alt text]
+2. [actual alt text]
+etc.`;
+
+    const response = await anthropic.messages.create({
+      model: aiConfig.anthropic.defaultModel,
+      max_tokens: aiConfig.anthropic.maxTokens,
+      temperature: aiConfig.anthropic.temperature,
+      system: "You are an accessibility expert. Provide ONLY concise, descriptive alt text for each image. Make sure that each alt text is no longer than 3 sentences long. Do not include any introductory text, explanations, or additional commentary. Each line should start with the number and contain only the alt text.",
       messages: [
-        {
-          role: "system",
-          content: "You are an accessibility expert specializing in writing concise, descriptive alt text for images. Provide alt text suggestions for each image, numbered to match the input."
-        },
         {
           role: "user",
           content: prompt
         }
-      ],
-      max_tokens: 500
+      ]
     });
 
-    const suggestions = response.choices[0]?.message.content?.split('\n') || [];
+    const responseText = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    const suggestions = responseText.split('\n').filter(line => line.trim());
     
     // Map suggestions back to violations
     validImageData.forEach((data, index) => {
-      const suggestion = suggestions[index]?.replace(/^\d+\.\s*/, '') || '';
-      if (suggestion) {
+      // Extract just the alt text part after the number
+      let suggestion = suggestions[index]?.replace(/^\d+\.\s*/, '').trim() || '';
+      
+             // Remove any remaining prefixes or unwanted text
+       suggestion = suggestion.replace(/^(alt text:|description:|alt=["']?|["']$|here are|suggested)/gi, '').trim();
+       
+       // Remove quotes if they wrap the entire suggestion
+       if ((suggestion.startsWith('"') && suggestion.endsWith('"')) || 
+           (suggestion.startsWith("'") && suggestion.endsWith("'"))) {
+         suggestion = suggestion.slice(1, -1);
+       }
+       
+       // Filter out unwanted phrases that might be in the response
+       const unwantedPhrases = [
+         'suggested alt text',
+         'description',
+         'here are my',
+         'here are the',
+         'alt text for',
+         'description for',
+         'suggested descriptions'
+       ];
+       
+       const hasUnwantedPhrase = unwantedPhrases.some(phrase => 
+         suggestion.toLowerCase().includes(phrase.toLowerCase())
+       );
+       
+       if (suggestion && suggestion.length > 0 && !hasUnwantedPhrase) {
         const beforeCode = data.violation.nodes[0]?.html || '<img src="image.jpg">';
         const afterCode = beforeCode.replace(/alt=["'][^"']*["']|<img/, match => {
           return match === '<img' 
@@ -228,24 +259,22 @@ Issue: ${violation.description}
 Failure: ${failureSummary}`;
     }).join('\n\n');
 
-    const response = await openai.chat.completions.create({
-      model: "meta-llama/llama-3.1-8b-instruct",
+    const response = await anthropic.messages.create({
+      model: aiConfig.anthropic.defaultModel,
+      max_tokens: aiConfig.anthropic.maxTokens * violations.length,
+      temperature: aiConfig.anthropic.temperature,
+      system: "You are an accessibility expert specializing in ARIA, semantic HTML, and form accessibility. Provide specific code fixes for accessibility issues. Number your responses to match the input issues.",
       messages: [
-        {
-          role: "system",
-          content: "You are an accessibility expert specializing in ARIA, semantic HTML, and form accessibility. Provide specific code fixes for accessibility issues. Number your responses to match the input issues."
-        },
         {
           role: "user",
           content: `Fix these accessibility issues:\n${batchPrompt}\n\nPage Context: ${pageContent.length > 500 ? pageContent.substring(0, 500) + '...' : pageContent}
 
 For each issue, provide a concise explanation in simple terms, specific code fix with before/after examples, and reference to WCAG guidelines.`
         }
-      ],
-      max_tokens: aiConfig.openai.maxTokens * violations.length
+      ]
     });
 
-    const suggestions = response.choices[0]?.message.content?.split(/\n(?=Issue \d+:)/) || [];
+    const suggestions = response.content[0]?.type === 'text' ? response.content[0].text.split(/\n(?=Issue \d+:)/) : [];
     
     // Map suggestions back to violations
     violations.forEach((violation, index) => {
@@ -295,24 +324,22 @@ Failure: ${failureSummary}
 WCAG Criteria: ${criteriaInfo}`;
     }).join('\n\n');
 
-    const response = await openai.chat.completions.create({
-      model: "meta-llama/llama-3.1-8b-instruct",
+    const response = await anthropic.messages.create({
+      model: aiConfig.anthropic.defaultModel,
+      max_tokens: aiConfig.anthropic.maxTokens * violations.length,
+      temperature: aiConfig.anthropic.temperature,
+      system: "You are an accessibility expert explaining WCAG violations in simple, non-technical language with clear code examples. Number your responses to match the input issues.",
       messages: [
-        {
-          role: "system",
-          content: "You are an accessibility expert explaining WCAG violations in simple, non-technical language with clear code examples. Number your responses to match the input issues."
-        },
         {
           role: "user",
           content: `Explain these accessibility issues in simple terms and provide fixes:\n${batchPrompt}
 
 For each issue, keep your explanation clear and non-technical. Include code examples showing before and after.`
         }
-      ],
-      max_tokens: aiConfig.openai.maxTokens * violations.length
+      ]
     });
 
-    const suggestions = response.choices[0]?.message.content?.split(/\n(?=Issue \d+:)/) || [];
+    const suggestions = response.content[0]?.type === 'text' ? response.content[0].text.split(/\n(?=Issue \d+:)/) : [];
     
     // Map suggestions back to violations
     violations.forEach((violation, index) => {
