@@ -110,12 +110,6 @@ The implementation assumes users are authenticated using Supabase Auth. Ensure:
 4. Data is transformed to match expected `ScanResult` type
 5. Component renders the data
 
-### Migration
-1. `MigrationHelper` component checks for localStorage data
-2. If found and user is authenticated, prompts for migration
-3. `migrateLocalStorageToSupabase()` transfers all localStorage data
-4. User can optionally clear localStorage after migration
-
 ## Features
 
 ### Automatic Fallback
