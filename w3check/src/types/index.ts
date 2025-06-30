@@ -13,6 +13,23 @@ export type ViolationType = {
   aiSuggestion?: string;
 };
 
+// New type for incomplete items that need manual review
+export type IncompleteItem = {
+  id: string;
+  description: string;
+  helpUrl: string;
+  nodes: {
+    html: string;
+    target: string[];
+    failureSummary: string;
+  }[];
+  tags: string[];
+  reviewStatus?: 'pending' | 'passed' | 'failed' | 'not-applicable';
+  reviewNotes?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+};
+
 export type ScanResult = {
   id: string;
   url: string;
@@ -22,6 +39,7 @@ export type ScanResult = {
   passes: number;
   incomplete: number;
   inapplicable: number;
+  incompleteItems: IncompleteItem[]; // NEW: Store incomplete items for manual review
   summary: {
     critical: number;
     serious: number;

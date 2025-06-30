@@ -3,11 +3,13 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { ScanResult } from '../../types';
+import { ScanResult, IncompleteItem } from '../../types';
 import LoadingSpinner from '../../components/results-page/LoadingSpinner';
 import NoResultsFound from '../../components/results-page/NoResultsFound';
 import ResultsHeader from '../../components/results-page/ResultsHeader';
 import CrawlSummary from '../../components/results-page/CrawlSummary';
+import ReviewSummary from '../../components/results-page/ReviewSummary';
+import ExportReviews from '../../components/results-page/ExportReviews';
 
 // Dynamically import components to avoid SSR issues with browser-only libraries
 const ScanHistory = dynamic(() => import('../../components/scan-functions/ScanHistory'), { ssr: false });
@@ -163,6 +165,31 @@ function ResultsContent() {
     }
   }, [resultId]);
 
+  const handleReviewUpdate = (scanId: string, updatedItems: IncompleteItem[]) => {
+    // Update the result with new review data
+    if (result && result.id === scanId) {
+      const updatedResult = {
+        ...result,
+        incompleteItems: updatedItems
+      };
+      setResult(updatedResult);
+      
+      // Update localStorage
+      try {
+        const storedHistory = localStorage.getItem("scanHistory");
+        if (storedHistory) {
+          const history: ScanResult[] = JSON.parse(storedHistory);
+          const updatedHistory = history.map(item => 
+            item.id === scanId ? updatedResult : item
+          );
+          localStorage.setItem("scanHistory", JSON.stringify(updatedHistory));
+        }
+      } catch (error) {
+        console.error("Error updating localStorage:", error);
+      }
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -184,10 +211,27 @@ function ResultsContent() {
         
         {isMultiPage && <CrawlSummary results={relatedResults} />}
         
+        {/* Manual Review Summary */}
+        {result.incompleteItems && result.incompleteItems.length > 0 && (
+          <ReviewSummary incompleteItems={result.incompleteItems} />
+        )}
+        
+        {/* Export Reviews */}
+        {result.incompleteItems && result.incompleteItems.length > 0 && (
+          <ExportReviews 
+            incompleteItems={result.incompleteItems}
+            url={result.url}
+            timestamp={result.timestamp}
+          />
+        )}
+        
         <h3 className="text-lg text-black font-medium mb-4">
           {isMultiPage ? 'Page Details' : 'Scan Details'}
         </h3>
-        <ScanHistory history={isMultiPage ? relatedResults : [result]} />
+        <ScanHistory 
+          history={isMultiPage ? relatedResults : [result]}
+          onReviewUpdate={handleReviewUpdate}
+        />
       </div>
     </div>
   );

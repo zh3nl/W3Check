@@ -1,7 +1,7 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import AxeBuilder from '@axe-core/puppeteer';
 import { analyzeAccessibilityViolations } from './ai-analyzer';
-import { ScanResult, ViolationType } from '../types';
+import { ScanResult, ViolationType, IncompleteItem } from '../types';
 
 // Cache the browser instance to improve performance
 let browserInstance: Browser | null = null;
@@ -89,6 +89,7 @@ async function scanPage(url: string): Promise<ScanResult> {
   const browser = await getBrowser();
   const page = await initPage(browser);
   let violations: ViolationType[] = [];
+  let incompleteItems: IncompleteItem[] = [];
   let passes = 0;
   let incomplete = 0;
   let inapplicable = 0;
@@ -168,6 +169,24 @@ async function scanPage(url: string): Promise<ScanResult> {
       } as ViolationType;
     });
     
+    // Process incomplete results - items that need manual review
+    incompleteItems = axeResults.incomplete.map((incomplete) => {
+      return {
+        id: incomplete.id,
+        description: incomplete.description,
+        helpUrl: incomplete.helpUrl,
+        nodes: incomplete.nodes.map((node) => ({
+          html: node.html,
+          target: Array.isArray(node.target) 
+            ? node.target.map(String) 
+            : [String(node.target)],
+          failureSummary: node.failureSummary || '',
+        })),
+        tags: incomplete.tags,
+        reviewStatus: 'pending' // Default status for new incomplete items
+      } as IncompleteItem;
+    });
+    
     // Use AI analyzer to enhance violations with detailed explanations and fixes
     violations = await analyzeAccessibilityViolations(rawViolations, url, pageContent);
     
@@ -201,6 +220,7 @@ async function scanPage(url: string): Promise<ScanResult> {
     passes,
     incomplete,
     inapplicable,
+    incompleteItems, // NEW: Include incomplete items for manual review
     summary
   };
 }
@@ -298,6 +318,7 @@ async function crawlAndScan(
           passes: 0,
           incomplete: 0,
           inapplicable: 0,
+          incompleteItems: [],
           summary: {
             critical: 0,
             serious: 0,
@@ -330,6 +351,7 @@ function createFailedScanResult(url: string, id: string): ScanResult {
     passes: 0,
     incomplete: 0,
     inapplicable: 0,
+    incompleteItems: [],
     summary: {
       critical: 0,
       serious: 0,
@@ -373,6 +395,7 @@ export async function scanSingleUrl(
       passes: 0,
       incomplete: 0,
       inapplicable: 0,
+      incompleteItems: [],
       summary: {
         critical: 0,
         serious: 0,

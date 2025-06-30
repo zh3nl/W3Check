@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 function LoadingSpinner({ size = 32 }) {
   return (
@@ -21,54 +21,38 @@ function ShimmerRow() {
 }
 
 export default function BufferPage() {
-  const router = useRouter();
   const params = useSearchParams();
   const url = params.get('url') || 'https://example.com';
 
   return (
-    <div className="flex min-h-screen" style={{ background: 'linear-gradient(to right, #f7f9fd 0%, #f7f9fd 100%)' }}>
-      {/* Left sidebar */}
-      <div className="w-[320px] flex flex-col items-center pt-8 px-6 bg-white border-r border-emerald-100 min-h-screen">
-        <button className="flex items-center text-gray-500 mb-8 self-start" onClick={() => router.push('/')}> 
-          <span className="mr-2">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </span>
-          Back to Home
-        </button>
-        <LoadingSpinner size={48} />
-        <div className="flex items-center mt-8 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-          <span className="text-emerald-600 mr-2">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2V7m6 7a6 6 0 11-12 0 6 6 0 0112 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </span>
-          <a href={url} target="_blank" rel="noopener noreferrer" className="text-emerald-700 underline text-sm">{url}</a>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to right, #f7f9fd 0%, #f7f9fd 100%)' }}>
+      <div className="max-w-4xl w-full mx-auto p-8">
+        <div className="text-center mb-8">
+          <LoadingSpinner size={64} />
         </div>
-      </div>
-      {/* Main content */}
-      <div className="flex-1 p-12">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        
+        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+          <div className="flex items-center justify-center mb-6 p-4 rounded-lg bg-emerald-50 border border-emerald-100">
+            <span className="text-emerald-600 mr-3">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2V7m6 7a6 6 0 11-12 0 6 6 0 0112 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </span>
+            <a href={url} target="_blank" rel="noopener noreferrer" className="text-emerald-700 underline text-lg font-medium">{url}</a>
+          </div>
+          
+          <h2 className="text-3xl font-bold text-gray-900 mb-4 text-center">
             Scanning <span className="text-emerald-700">{url}</span>...
           </h2>
-          <div className="flex items-center text-gray-600 mb-6">
-            <svg className="w-5 h-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" /><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            This may take a while. You will see the results when scanning is completed
+          
+          <div className="flex items-center justify-center text-gray-600 mb-8">
+            <svg className="w-6 h-6 text-emerald-500 mr-3" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" /><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <span className="text-lg">This may take a while. You will see the results when scanning is completed</span>
           </div>
-          {/* Loading cards */}
-          {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="col-span-2 h-32 rounded-xl bg-emerald-100 flex items-center justify-center relative overflow-hidden">
-              <LoadingSpinner size={40} />
-            </div>
-            <div className="h-40 rounded-xl bg-white flex items-center justify-center shadow-md">
-              <LoadingSpinner size={36} />
-            </div>
-            <div className="h-40 rounded-xl bg-white flex items-center justify-center shadow-md">
-              <LoadingSpinner size={36} />
-            </div>
-          </div> */}
-          {/* Shimmer table */}
-          <div className="bg-white rounded-xl shadow p-6">
-            {Array.from({ length: 10 }).map((_, i) => <ShimmerRow key={i} />)}
-          </div>
+        </div>
+        
+        {/* Shimmer table */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h3 className="text-xl font-semibold text-gray-800 mb-6 text-center">Preparing scan results...</h3>
+          {Array.from({ length: 8 }).map((_, i) => <ShimmerRow key={i} />)}
         </div>
       </div>
     </div>
