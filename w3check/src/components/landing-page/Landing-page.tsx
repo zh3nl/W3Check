@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { ScanResult } from '../../types';
+import { saveScanResults } from '../../services/scanResults';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import Demo from './Demo';
@@ -21,22 +22,42 @@ export default function LandingPage() {
     router.push(`/buffer-page?url=${encodeURIComponent(url)}`);
   };
 
-  const handleScanComplete = (results: ScanResult[]) => {
-    // Store the results in localStorage
-    const storedHistory = localStorage.getItem('scanHistory') || '[]';
-    let history: ScanResult[] = JSON.parse(storedHistory);
-    
-    // Add new results to history
-    history = [...results, ...history];
-    localStorage.setItem('scanHistory', JSON.stringify(history));
-    
-    // Redirect to the results page with the first result
-    if (results.length > 0) {
-      router.push(`/results-page?id=${results[0].id}`);
+  const handleScanComplete = async (results: ScanResult[]) => {
+    try {
+      // Save the results to Supabase
+      await saveScanResults(results);
+      
+      // Also keep in localStorage as fallback (optional)
+      const storedHistory = localStorage.getItem('scanHistory') || '[]';
+      let history: ScanResult[] = JSON.parse(storedHistory);
+      history = [...results, ...history];
+      localStorage.setItem('scanHistory', JSON.stringify(history));
+      
+      // Redirect to the results page with the first result
+      if (results.length > 0) {
+        router.push(`/results-page?id=${results[0].id}`);
+      }
+      
+      setIsLoading(false);
+      toast.success('Scan completed successfully!');
+    } catch (error) {
+      console.error('Error saving scan results:', error);
+      
+      // Fall back to localStorage only if Supabase fails
+      const storedHistory = localStorage.getItem('scanHistory') || '[]';
+      let history: ScanResult[] = JSON.parse(storedHistory);
+      history = [...results, ...history];
+      localStorage.setItem('scanHistory', JSON.stringify(history));
+      
+      // Still redirect to results page
+      if (results.length > 0) {
+        router.push(`/results-page?id=${results[0].id}`);
+      }
+      
+      setIsLoading(false);
+      toast.success('Scan completed successfully!');
+      toast.warning('Scan results saved locally only. Please check your connection.');
     }
-    
-    setIsLoading(false);
-    toast.success('Scan completed successfully!');
   };
 
   const handleScanError = (error: Error) => {
