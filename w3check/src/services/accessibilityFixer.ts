@@ -1,4 +1,5 @@
-import { ViolationType, CodeFix } from '../types';
+import { ViolationType, CodeFix, JSXCodeFix, ReactFile, MatchResult, JSXElement } from '../types';
+import { ReactContentMatcher } from './reactContentMatcher';
 
 export class AccessibilityFixer {
   generateCodeFixes(violations: ViolationType[], url: string): CodeFix[] {
@@ -417,5 +418,312 @@ ${className} {
     const distance = matrix[len2][len1];
     const maxLen = Math.max(len1, len2);
     return maxLen === 0 ? 1.0 : (maxLen - distance) / maxLen;
+  }
+
+  async findAndApplyReactFixes(
+    violations: ViolationType[], 
+    _url: string, 
+    reactFiles: ReactFile[], 
+    getFileContent: (path: string) => Promise<string | null>
+  ): Promise<JSXCodeFix[]> {
+    const appliedFixes: JSXCodeFix[] = [];
+    const contentMatcher = new ReactContentMatcher();
+    
+    console.log('=== REACT ACCESSIBILITY FIXER DEBUG ===');
+    console.log('Processing violations:', violations.length);
+    console.log('React files to search:', reactFiles.length);
+    
+    // Load file contents for React files
+    const reactFilesWithContent: ReactFile[] = [];
+    for (const reactFile of reactFiles) {
+      const content = await getFileContent(reactFile.path);
+      if (content) {
+        reactFilesWithContent.push({
+          ...reactFile,
+          content
+        });
+      }
+    }
+
+    for (const violation of violations) {
+      console.log(`\n--- Processing violation: ${violation.id} ---`);
+      
+      // Use the content matcher to find JSX elements that match this violation
+      const matches = await contentMatcher.matchViolationToJSXElements(
+        violation, 
+        reactFilesWithContent
+      );
+      
+      console.log(`Found ${matches.length} potential matches`);
+      
+      // Process matches with confidence above threshold
+      const highConfidenceMatches = matches.filter(match => match.confidence >= 0.7);
+      console.log(`High confidence matches: ${highConfidenceMatches.length}`);
+      
+      for (const match of highConfidenceMatches) {
+        const fix = this.generateJSXFix(violation, match);
+        if (fix) {
+          // Apply the fix to the full file content
+          const originalContent = reactFilesWithContent.find(f => f.path === match.filePath)?.content;
+          if (originalContent) {
+            const updatedContent = this.applyJSXFix(originalContent, fix);
+            fix.fixedContent = updatedContent;
+            fix.originalContent = originalContent;
+            
+            appliedFixes.push(fix);
+            console.log('✓ JSX Fix applied successfully');
+          }
+        }
+      }
+    }
+    
+    console.log(`\n=== REACT SUMMARY ===`);
+    console.log(`Total JSX fixes applied: ${appliedFixes.length}`);
+    return appliedFixes;
+  }
+
+  generateJSXFixes(violations: ViolationType[], reactFiles: ReactFile[]): JSXCodeFix[] {
+    const fixes: JSXCodeFix[] = [];
+    const contentMatcher = new ReactContentMatcher();
+    
+    for (const violation of violations) {
+      // This is a simplified synchronous version - the async version above is preferred
+      for (const reactFile of reactFiles) {
+        if (!reactFile.content) continue;
+        
+        const fix = this.generateReactSpecificFix(violation, reactFile);
+        if (fix) {
+          fixes.push(fix);
+        }
+      }
+    }
+
+    return fixes;
+  }
+
+  applyJSXFix(originalContent: string, fix: JSXCodeFix): string {
+    const originalElement = fix.originalContent;
+    const fixedElement = fix.fixedContent;
+    
+    // Simple replacement approach - could be enhanced with AST manipulation
+    return originalContent.replace(originalElement, fixedElement);
+  }
+
+  private generateJSXFix(violation: ViolationType, match: MatchResult): JSXCodeFix | null {
+    const jsxElement = match.jsxElement;
+    const violationId = violation.id;
+    
+    try {
+      let fixedJSX = this.applyJSXFixForViolation(violationId, jsxElement);
+      
+      if (!fixedJSX || fixedJSX === jsxElement.raw) {
+        return null; // No fix needed or couldn't generate fix
+      }
+
+      return {
+        filePath: match.filePath,
+        originalContent: jsxElement.raw,
+        fixedContent: fixedJSX,
+        description: this.getJSXFixDescription(violationId, jsxElement),
+        violationsFixed: [violation.id],
+        elementType: jsxElement.type,
+        propsModified: this.getModifiedProps(jsxElement, fixedJSX),
+        jsxTransform: true,
+        reactSpecific: true
+      };
+    } catch (error) {
+      console.error('Error generating JSX fix:', error);
+      return null;
+    }
+  }
+
+  private applyJSXFixForViolation(violationId: string, jsxElement: JSXElement): string {
+    switch (violationId) {
+      case 'image-alt':
+        return this.fixJSXImageAlt(jsxElement);
+      
+      case 'color-contrast':
+        return this.fixJSXColorContrast(jsxElement);
+      
+      case 'label':
+      case 'label-title-only':
+        return this.fixJSXMissingLabel(jsxElement);
+      
+      case 'heading-order':
+        return this.fixJSXHeadingOrder(jsxElement);
+      
+      case 'landmark-one-main':
+        return this.fixJSXMissingMain(jsxElement);
+      
+      case 'button-name':
+        return this.fixJSXButtonName(jsxElement);
+      
+      case 'link-name':
+        return this.fixJSXLinkName(jsxElement);
+      
+      default:
+        return this.fixJSXGeneric(jsxElement, violationId);
+    }
+  }
+
+  private fixJSXImageAlt(jsxElement: JSXElement): string {
+    const props = { ...jsxElement.props };
+    
+    if (!props.alt) {
+      // Generate alt text based on src or generic description
+      const src = props.src as string;
+      const fileName = src ? src.split('/').pop()?.split('.')[0] : 'image';
+      props.alt = `Description of ${fileName}`;
+    }
+    
+    return this.reconstructJSXElement(jsxElement.type, props);
+  }
+
+  private fixJSXColorContrast(jsxElement: JSXElement): string {
+    const props = { ...jsxElement.props };
+    
+    // Add inline styles for better contrast (simplified approach)
+    const contrastStyles = {
+      color: '#333333',
+      backgroundColor: '#ffffff'
+    };
+    
+    if (props.style) {
+      // Merge with existing styles
+      props.style = `${props.style}; color: #333333; background-color: #ffffff;`;
+    } else {
+      props.style = 'color: #333333; background-color: #ffffff;';
+    }
+    
+    return this.reconstructJSXElement(jsxElement.type, props);
+  }
+
+  private fixJSXMissingLabel(jsxElement: JSXElement): string {
+    const props = { ...jsxElement.props };
+    
+    if (!props['aria-label'] && !props['aria-labelledby']) {
+      const inputType = props.type as string || 'text';
+      props['aria-label'] = this.generateLabelText(inputType);
+    }
+    
+    return this.reconstructJSXElement(jsxElement.type, props);
+  }
+
+  private fixJSXHeadingOrder(jsxElement: JSXElement): string {
+    const currentLevel = parseInt(jsxElement.type.charAt(1));
+    const suggestedLevel = Math.max(1, currentLevel - 1);
+    
+    return this.reconstructJSXElement(`h${suggestedLevel}`, jsxElement.props);
+  }
+
+  private fixJSXMissingMain(jsxElement: JSXElement): string {
+    const props = { ...jsxElement.props };
+    props.role = 'main';
+    
+    return this.reconstructJSXElement('main', props);
+  }
+
+  private fixJSXButtonName(jsxElement: JSXElement): string {
+    const props = { ...jsxElement.props };
+    
+    if (!props['aria-label'] && !props.children) {
+      props['aria-label'] = 'Button';
+    }
+    
+    return this.reconstructJSXElement(jsxElement.type, props);
+  }
+
+  private fixJSXLinkName(jsxElement: JSXElement): string {
+    const props = { ...jsxElement.props };
+    
+    if (!props['aria-label']) {
+      props['aria-label'] = 'Link';
+    }
+    
+    return this.reconstructJSXElement(jsxElement.type, props);
+  }
+
+  private fixJSXGeneric(jsxElement: JSXElement, violationId: string): string {
+    // Add a comment for manual review
+    return `{/* Accessibility Issue: ${violationId} - Please review */}\n${jsxElement.raw}`;
+  }
+
+  private reconstructJSXElement(type: string, props: Record<string, string | number | boolean | null | undefined>): string {
+    const propsString = Object.entries(props)
+      .filter(([_, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => {
+        if (value === true) {
+          return key;
+        }
+        if (typeof value === 'string') {
+          // Handle JSX expressions vs string literals
+          if (value.startsWith('{') && value.endsWith('}')) {
+            return `${key}=${value}`;
+          }
+          return `${key}="${value}"`;
+        }
+        if (typeof value === 'number') {
+          return `${key}={${value}}`;
+        }
+        return `${key}="${value}"`;
+      })
+      .join(' ');
+    
+    // For self-closing tags
+    const selfClosingTags = ['img', 'input', 'br', 'hr', 'meta', 'link'];
+    if (selfClosingTags.includes(type.toLowerCase())) {
+      return propsString ? `<${type} ${propsString} />` : `<${type} />`;
+    }
+    
+    // For regular tags (simplified - not handling children)
+    return propsString ? `<${type} ${propsString}></${type}>` : `<${type}></${type}>`;
+  }
+
+  private getJSXFixDescription(violationId: string, jsxElement: JSXElement): string {
+    const elementType = jsxElement.type;
+    
+    switch (violationId) {
+      case 'image-alt':
+        return `Add alt text to ${elementType} component`;
+      case 'color-contrast':
+        return `Improve color contrast for ${elementType} component`;
+      case 'label':
+        return `Add aria-label to ${elementType} component`;
+      case 'heading-order':
+        return `Fix heading order for ${elementType} component`;
+      case 'landmark-one-main':
+        return `Add main landmark to ${elementType} component`;
+      case 'button-name':
+        return `Add accessible name to ${elementType} component`;
+      case 'link-name':
+        return `Add accessible name to ${elementType} component`;
+      default:
+        return `Fix accessibility issue in ${elementType} component`;
+    }
+  }
+
+  private getModifiedProps(originalElement: JSXElement, fixedJSX: string): string[] {
+    // Simple approach to detect modified props
+    const modifiedProps: string[] = [];
+    
+    // Extract props from fixed JSX (simplified)
+    const propMatches = fixedJSX.match(/(\w+)=(?:{[^}]*}|"[^"]*")/g) || [];
+    const fixedProps = propMatches.map(match => match.split('=')[0]);
+    
+    const originalProps = Object.keys(originalElement.props);
+    
+    // Find new props
+    for (const prop of fixedProps) {
+      if (!originalProps.includes(prop)) {
+        modifiedProps.push(prop);
+      }
+    }
+    
+    return modifiedProps;
+  }
+
+  private generateReactSpecificFix(violation: ViolationType, reactFile: ReactFile): JSXCodeFix | null {
+    // Simplified implementation for the synchronous version
+    return null;
   }
 } 

@@ -77,4 +77,77 @@ export interface PullRequestResult {
   };
   fixesApplied?: number;
   error?: string;
+}
+
+// React/JSX specific types
+export interface ReactFile {
+  path: string;
+  type: 'component' | 'page' | 'layout' | 'other';
+  framework: 'react' | 'nextjs';
+  priority: number;
+  language: 'tsx' | 'jsx' | 'ts' | 'js';
+  content?: string;
+}
+
+export interface JSXElement {
+  type: string;
+  props: Record<string, string | number | boolean | null | undefined>;
+  children: JSXElement[];
+  line: number;
+  column: number;
+  raw: string; // Original JSX string
+}
+
+export interface ParsedJSXFile {
+  filePath: string;
+  elements: JSXElement[];
+  imports: string[];
+  exports: string[];
+  hasAccessibilityIssues: boolean;
+}
+
+export interface JSXCodeFix extends CodeFix {
+  elementType: string;
+  propsModified: string[];
+  jsxTransform: boolean;
+  reactSpecific: boolean;
+}
+
+export interface MatchResult {
+  violation: ViolationType;
+  jsxElement: JSXElement;
+  filePath: string;
+  confidence: number; // 0-1, how confident we are about the match
+  matchType: 'exact' | 'fuzzy' | 'semantic';
+}
+
+export interface ComponentTree {
+  filePath: string;
+  componentName: string;
+  children: ComponentTree[];
+  usedComponents: string[];
+  accessibilityRelevant: boolean;
+}
+
+export interface ElementMatch {
+  originalHtml: string;
+  jsxElement: JSXElement;
+  filePath: string;
+  transformations: string[];
+}
+
+export interface ReactFileStructure {
+  components: string[];
+  pages: string[];
+  layouts: string[];
+  otherRelevant: string[];
+  allFiles: string[];
+}
+
+// Enhanced GitHub repository interface for React support
+export interface EnhancedGitHubRepository extends GitHubRepository {
+  reactFileStructure?: ReactFileStructure;
+  hasReactFiles: boolean;
+  hasNextJsFiles: boolean;
+  framework: 'html' | 'react' | 'nextjs' | 'mixed';
 } 
