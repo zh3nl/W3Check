@@ -49,4 +49,32 @@ export type ScanRequest = SingleUrlScanRequest | BatchUrlScanRequest;
 // Check if a request is a batch scan
 export function isBatchScanRequest(req: ScanRequest): req is BatchUrlScanRequest {
   return 'urls' in req && Array.isArray(req.urls);
+}
+
+// GitHub Integration Types
+export interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  private: boolean;
+  html_url: string;
+  default_branch: string;
+}
+
+export interface CodeFix {
+  filePath: string;
+  originalContent: string;
+  fixedContent: string;
+  description: string;
+  violationsFixed: string[];
+}
+
+export interface PullRequestResult {
+  success: boolean;
+  pullRequest?: {
+    url: string;
+    number: number;
+  };
+  fixesApplied?: number;
+  error?: string;
 } 
