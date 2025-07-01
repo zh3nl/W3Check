@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ScanResult } from '../../types';
+import { getUserScanResults, getScanResultById } from '../../services/scanResults';
 import LoadingSpinner from '../../components/results-page/LoadingSpinner';
 import NoResultsFound from '../../components/results-page/NoResultsFound';
 import ResultsHeader from '../../components/results-page/ResultsHeader';
@@ -68,99 +69,141 @@ function ResultsContent() {
   const [scanUrl, setScanUrl] = useState<string>("");
 
   useEffect(() => {
-    // Fetch results from localStorage
-    try {
-      const storedHistory = localStorage.getItem("scanHistory");
-      if (!storedHistory) {
-        console.log("No scan history found in localStorage");
-        setLoading(false);
-        return;
-      }
-      
-      let history: ScanResult[] = [];
+    const fetchResults = async () => {
       try {
-        history = JSON.parse(storedHistory);
-        if (!Array.isArray(history)) {
-          console.error("Scan history is not an array:", history);
+        if (resultId) {
+          // Try to get specific scan result from Supabase first
+          try {
+            const specificResult = await getScanResultById(resultId);
+            if (specificResult) {
+              // Get all results to check for multi-page crawls
+              const allResults = await getUserScanResults();
+              
+              // Check if this is a multi-page crawl
+              const multiPage = isMultiPageCrawl(resultId, allResults);
+              setIsMultiPage(multiPage);
+              
+              if (multiPage) {
+                const related = getRelatedResults(resultId, allResults);
+                setRelatedResults(related);
+                setResult(specificResult);
+              } else {
+                setRelatedResults([specificResult]);
+                setResult(specificResult);
+              }
+              
+              // Set domain and URL
+              if (specificResult.url) {
+                setScanUrl(specificResult.url);
+                setDomain(getDomainFromUrl(specificResult.url));
+              }
+              
+              setLoading(false);
+              return;
+            }
+          } catch (supabaseError) {
+            console.log("Error fetching from Supabase, falling back to localStorage:", supabaseError);
+          }
+        }
+        
+        // Fallback to localStorage or get all results from Supabase
+        let history: ScanResult[] = [];
+        
+        try {
+          // Try Supabase first
+          history = await getUserScanResults();
+        } catch (supabaseError) {
+          console.log("Error fetching from Supabase, using localStorage:", supabaseError);
+          
+          // Fallback to localStorage
+          const storedHistory = localStorage.getItem("scanHistory");
+          if (storedHistory) {
+            try {
+              history = JSON.parse(storedHistory);
+              if (!Array.isArray(history)) {
+                console.error("Scan history is not an array:", history);
+                history = [];
+              }
+            } catch (parseError) {
+              console.error("Error parsing scan history:", parseError);
+              history = [];
+            }
+          }
+        }
+        
+        if (history.length === 0) {
+          console.log("No scan history found");
           setLoading(false);
           return;
         }
-      } catch (e) {
-        console.error("Error parsing scan history:", e);
-        setLoading(false);
-        return;
-      }
-      
-      if (history.length === 0) {
-        console.log("Scan history is empty");
-        setLoading(false);
-        return;
-      }
-      
-      if (resultId) {
-        // Check if this is a multi-page crawl
-        const multiPage = isMultiPageCrawl(resultId, history);
-        setIsMultiPage(multiPage);
         
-        if (multiPage) {
-          // Get all related results for the crawl
-          const related = getRelatedResults(resultId, history);
-          if (related.length > 0) {
-            setRelatedResults(related);
-            
-            // Set the primary result (the one with the matching ID)
-            const primary = history.find((item) => item.id === resultId);
-            setResult(primary || related[0]);
-            
-            // Set domain and URL
-            if (primary?.url) {
-              setScanUrl(primary.url);
-              setDomain(getDomainFromUrl(primary.url));
-            } else if (related[0]?.url) {
-              setScanUrl(related[0].url);
-              setDomain(getDomainFromUrl(related[0].url));
+        if (resultId) {
+          // Check if this is a multi-page crawl
+          const multiPage = isMultiPageCrawl(resultId, history);
+          setIsMultiPage(multiPage);
+          
+          if (multiPage) {
+            // Get all related results for the crawl
+            const related = getRelatedResults(resultId, history);
+            if (related.length > 0) {
+              setRelatedResults(related);
+              
+              // Set the primary result (the one with the matching ID)
+              const primary = history.find((item) => item.id === resultId);
+              setResult(primary || related[0]);
+              
+              // Set domain and URL
+              if (primary?.url) {
+                setScanUrl(primary.url);
+                setDomain(getDomainFromUrl(primary.url));
+              } else if (related[0]?.url) {
+                setScanUrl(related[0].url);
+                setDomain(getDomainFromUrl(related[0].url));
+              }
+            } else {
+              console.log("No related results found for multi-page crawl");
+              setResult(null);
             }
           } else {
-            console.log("No related results found for multi-page crawl");
-            setResult(null);
+            // Regular single-page result
+            const foundResult = history.find((item) => item.id === resultId);
+            if (foundResult) {
+              setResult(foundResult);
+              setRelatedResults([foundResult]);
+              
+              // Set domain and URL
+              if (foundResult.url) {
+                setScanUrl(foundResult.url);
+                setDomain(getDomainFromUrl(foundResult.url));
+              }
+            } else {
+              console.log(`Result with ID ${resultId} not found`);
+              setResult(null);
+            }
           }
         } else {
-          // Regular single-page result
-          const foundResult = history.find((item) => item.id === resultId);
-          if (foundResult) {
-            setResult(foundResult);
-            setRelatedResults([foundResult]);
+          // If no ID is provided, use the most recent result
+          if (history.length > 0) {
+            setResult(history[0]);
+            setRelatedResults([history[0]]);
             
             // Set domain and URL
-            if (foundResult.url) {
-              setScanUrl(foundResult.url);
-              setDomain(getDomainFromUrl(foundResult.url));
+            if (history[0].url) {
+              setScanUrl(history[0].url);
+              setDomain(getDomainFromUrl(history[0].url));
             }
-          } else {
-            console.log(`Result with ID ${resultId} not found`);
-            setResult(null);
           }
         }
-      } else {
-        // If no ID is provided, use the most recent result
-        if (history.length > 0) {
-          setResult(history[0]);
-          setRelatedResults([history[0]]);
-          
-          // Set domain and URL
-          if (history[0].url) {
-            setScanUrl(history[0].url);
-            setDomain(getDomainFromUrl(history[0].url));
-          }
-        }
+      } catch (error) {
+        console.error("Error in results page:", error);
+        setResult(null);
+        setRelatedResults([]);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error in results page:", error);
-      setResult(null);
-      setRelatedResults([]);
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    fetchResults();
   }, [resultId]);
 
   if (loading) {

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getUniqueScannedUrls } from '../../services/scanResults';
 
 interface ScanResult {
   id: string;
@@ -16,20 +17,32 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    // Load scan history from localStorage
-    if (typeof window !== 'undefined') {
-      const history = localStorage.getItem('scanHistory');
-      if (history) {
-        try {
-          const parsed: ScanResult[] = JSON.parse(history);
-          // Get unique domains by url
-          const unique = Array.from(new Map(parsed.map(item => [item.url, item])).values());
-          setDomains(unique);
-        } catch {
-          setDomains([]);
+    const fetchDomains = async () => {
+      try {
+        // Try to load from Supabase first
+        const uniqueUrls = await getUniqueScannedUrls();
+        setDomains(uniqueUrls);
+      } catch (error) {
+        console.log('Error fetching from Supabase, falling back to localStorage:', error);
+        
+        // Fallback to localStorage
+        if (typeof window !== 'undefined') {
+          const history = localStorage.getItem('scanHistory');
+          if (history) {
+            try {
+              const parsed: ScanResult[] = JSON.parse(history);
+              // Get unique domains by url
+              const unique = Array.from(new Map(parsed.map(item => [item.url, item])).values());
+              setDomains(unique);
+            } catch {
+              setDomains([]);
+            }
+          }
         }
       }
-    }
+    };
+
+    fetchDomains();
   }, []);
 
   const filteredDomains = domains.filter(domain =>
