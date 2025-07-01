@@ -186,15 +186,23 @@ etc.`;
     });
 
     const responseText = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    
+    // Debug: Log AI response
+    console.log('=== AI ANALYZER DEBUG ===');
+    console.log('AI raw response:', responseText);
+    
     const suggestions = responseText.split('\n').filter(line => line.trim());
+    console.log('Parsed suggestions:', suggestions);
     
     // Map suggestions back to violations
     validImageData.forEach((data, index) => {
       // Extract just the alt text part after the number
       let suggestion = suggestions[index]?.replace(/^\d+\.\s*/, '').trim() || '';
+      console.log(`Processing suggestion ${index + 1}:`, suggestion);
       
              // Remove any remaining prefixes or unwanted text
        suggestion = suggestion.replace(/^(alt text:|description:|alt=["']?|["']$|here are|suggested)/gi, '').trim();
+       console.log(`After cleanup:`, suggestion);
        
        // Remove quotes if they wrap the entire suggestion
        if ((suggestion.startsWith('"') && suggestion.endsWith('"')) || 
@@ -216,6 +224,10 @@ etc.`;
        const hasUnwantedPhrase = unwantedPhrases.some(phrase => 
          suggestion.toLowerCase().includes(phrase.toLowerCase())
        );
+       
+       console.log(`Has unwanted phrase: ${hasUnwantedPhrase}`);
+       console.log(`Suggestion length: ${suggestion.length}`);
+       console.log(`Will generate AI suggestion: ${suggestion && suggestion.length > 0 && !hasUnwantedPhrase}`);
        
        if (suggestion && suggestion.length > 0 && !hasUnwantedPhrase) {
         const beforeCode = data.violation.nodes[0]?.html || '<img src="image.jpg">';
@@ -466,5 +478,72 @@ function getPriorityDescription(impact: string): string {
       return 'This issue affects optimal experience for users with disabilities but does not prevent access.';
     default:
       return 'This issue impacts accessibility and should be reviewed.';
+  }
+}
+
+export async function generateAISuggestion(violation: ViolationType): Promise<string> {
+  try {
+    console.log('🤖 Generating AI suggestion for violation:', violation);
+
+    if (violation.id === 'image-alt') {
+      // Extract image info from violation nodes
+      for (const node of violation.nodes) {
+        const match = node.html.match(/src=["']([^"']+)["']/);
+        if (match && match[1]) {
+          const imageSrc = match[1];
+          console.log('🖼️ Processing image for alt text:', imageSrc);
+          
+          // Extract filename from image source
+          const filename = imageSrc.split('/').pop() || imageSrc;
+          
+          // Get page context if available
+          const elementContext = node.html;
+          
+          console.log('📄 Using context-based approach for image:', { filename, elementContext });
+          
+          const prompt = `Generate a descriptive alt text for an image with filename "${filename}".
+          
+Element context: ${elementContext}
+
+The alt text should be:
+- Descriptive and meaningful
+- Concise (under 125 characters)
+- Relevant to the page content and image filename
+- Professional and accessible
+
+Based on the filename "${filename}" and context, suggest appropriate alt text:`;
+
+          const response = await anthropic.messages.create({
+            model: 'claude-3-haiku-20240307',
+            max_tokens: 150,
+            messages: [
+              {
+                role: 'user',
+                content: prompt
+              }
+            ]
+          });
+
+          console.log('🤖 Raw AI response:', response);
+
+          const suggestion = response.content[0]?.type === 'text' 
+            ? response.content[0].text.trim()
+            : 'Add descriptive alt text for this image';
+
+          console.log('✅ Generated alt text suggestion:', suggestion);
+          
+          // Clean up the suggestion (remove quotes if present)
+          const cleanSuggestion = suggestion.replace(/^["']|["']$/g, '');
+          
+          return cleanSuggestion || `Descriptive alt text for ${filename}`;
+        }
+      }
+    }
+
+    // Handle other violation types...
+    return generateBasicSuggestion(violation);
+  } catch (error) {
+    console.error('Error generating AI suggestion:', error);
+    return 'Error generating AI suggestion.';
   }
 } 

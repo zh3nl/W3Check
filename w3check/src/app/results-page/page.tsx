@@ -12,6 +12,7 @@ import CrawlSummary from '../../components/results-page/CrawlSummary';
 
 // Dynamically import components to avoid SSR issues with browser-only libraries
 const ScanHistory = dynamic(() => import('../../components/scan-functions/ScanHistory'), { ssr: false });
+const GitHubIntegration = dynamic(() => import('../../components/github/GitHubIntegration'), { ssr: false });
 
 // Helper function to determine if this is a multi-page crawl result
 function isMultiPageCrawl(resultId: string, history: ScanResult[]): boolean {
@@ -231,6 +232,11 @@ function ResultsContent() {
           {isMultiPage ? 'Page Details' : 'Scan Details'}
         </h3>
         <ScanHistory history={isMultiPage ? relatedResults : [result]} />
+      </div>
+      
+      {/* GitHub Integration Section */}
+      <div className="mb-6">
+        <GitHubIntegration scanResult={result} />
       </div>
     </div>
   );
