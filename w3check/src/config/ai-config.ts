@@ -15,7 +15,7 @@ export const aiConfig = {
   
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY || '',
-    defaultModel: 'claude-3-opus-20240229',
+    defaultModel: 'claude-3-7-sonnet-20250219',
     maxTokens: 500,
     temperature: 0.3,
   },
