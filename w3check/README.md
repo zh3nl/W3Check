@@ -105,3 +105,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Axe-core](https://github.com/dequelabs/axe-core) for accessibility testing
 - [Puppeteer](https://pptr.dev/) for headless browser testing
 - [OpenAI](https://openai.com/) for AI-powered fix suggestions
+- Author and source code creater: Zhen Liu (All rights reserved)
